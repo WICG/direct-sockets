@@ -164,4 +164,32 @@ let writableStream = tcpSocket.writable;
 tcpSocket.close();
 ```
 
+To simplify security analysis, an API for listening for incoming connections is not yet being proposed.
+
 ## UDP
+
+To simplify security analysis, the initial proposal only supports cases where the web app initiates communication with a remote host.
+
+```
+const options = {
+    remoteAddress: 'example.com',
+    remotePort: 7
+};
+navigator.openUDPSocket(options).then(udpSocket => { ... }).else(error => { ... });
+```
+
+The UDP socket can use events to indicate when a packet can be sent or received. No send event is generated until after a packet has been sent.
+
+```
+udpSocket.onreceive = (e) => {
+  let received_blob = e.socket.receive();
+  // ...
+};
+
+udpSocket.onsend = (e) => {
+  let next_blob = ...;
+  e.socket.send(next_blob);
+};
+let first_blob = ...;
+e.socket.send(first_blob);
+```
