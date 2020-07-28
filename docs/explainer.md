@@ -1,8 +1,14 @@
 # Raw Sockets
 
+
+
 ## Motivation
 
-See [Discourse](https://discourse.wicg.io/t/filling-the-remaining-gap-between-websocket-webrtc-and-webtranspor/4366).
+This Network Sockets API proposal related to the Discourse post [Filling the remaining gap between WebSocket, WebRTC and WebTransport](https://discourse.wicg.io/t/filling-the-remaining-gap-between-websocket-webrtc-and-webtranspor/4366).
+
+The motivating use case is to support creating a web app that talks to servers and devices that have their own protocols incompatible with what’s available on the web, e.g. [SSH](https://en.wikipedia.org/wiki/Secure_Shell), [RDP](https://en.wikipedia.org/wiki/Remote_Desktop_Protocol) or [printer protocols](https://en.wikipedia.org/wiki/List_of_printing_protocols). The web app should be able to talk to a legacy system, without requiring users to change or replace that system.
+
+
 
 ## Security Considerations
 
