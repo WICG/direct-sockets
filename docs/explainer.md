@@ -103,13 +103,13 @@ A permissions policy will control access, preventing third party use by default.
 
 ### Threat
 
-An attacker might configure DNS entries to point to private addresses in the user's intranet, tricking the user into providing access to resources behind a firewall.
+An attacker might configure DNS entries to point to private addresses in the user's intranet, tricking the user into providing access to resources behind a firewall. Such access might be used to extract information or damage hardware.
 
 #### Mitigation
 
 Hostnames that resolve to [non-public addresses](https://wicg.github.io/cors-rfc1918/#framework) would be rejected.
 
-Thus connections to a loopback address (`127.0.0.0/8`, `::1/128`), a private network address (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `fc00::/7`) or a link-local address (`169.254.0.0/16`, `fe80::/10`) will fail unless a raw IP address is entered.
+Thus connections to a loopback address (`127.0.0.0/8`, `::1/128`), a private network address (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `fc00::/7`) or a link-local address (`169.254.0.0/16`, `fe80::/10`) will fail unless a raw IP address is entered by the user.
 
 
 
@@ -119,7 +119,7 @@ Use of the API may violate organization policies, that control which protocols m
 
 #### Mitigation
 
-User agents may restrict use of the API when enterprise software policies are in effect.
+User agents may restrict use of the API when enterprise software policies are in effect. For example, user agents might by default not allow use of this API unless the user has permission to install new binaries.
 
 
 
