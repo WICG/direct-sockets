@@ -1,5 +1,6 @@
 # raw-sockets
-Raw Sockets API for the web platform
+
+This is a proposal for a future Raw Sockets web platform API.
 
 ## Links
 
