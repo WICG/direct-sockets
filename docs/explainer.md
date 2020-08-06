@@ -47,7 +47,7 @@ and what UI will be shown to the user.
 
 MITM attackers may inject sockets API calls into a web page.
 
-### Mitigation
+#### Mitigation
 
 The API will only available in secure contexts (HTTPS).
 
@@ -57,11 +57,13 @@ The API will only available in secure contexts (HTTPS).
 
 A web app might initiate connections without the user realizing.
 
-### Mitigation
+#### Mitigation
 
 When initiating a connection, the user agent would show some UI.
 
 The user can be asked to specify a hostname or IP address, with an option to permit future connections to this host.
+
+![Example consent dialog](mocks/consent_dialog.png)
 
 
 
@@ -69,7 +71,7 @@ The user can be asked to specify a hostname or IP address, with an option to per
 
 Attackers may use the API to DDOS third parties.
 
-### Mitigation
+#### Mitigation
 
 Connection attempts would be rate limited.
 
@@ -83,7 +85,7 @@ No transient activation would be required for reconnections. This is important f
 
 Attackers may use the API to by-pass third parties' CORS policies.
 
-### Mitigation
+#### Mitigation
 
 We could forbid the API from being used for TCP with the well known HTTPS port, whenever the destination host supports CORS.
 
@@ -93,7 +95,7 @@ We could forbid the API from being used for TCP with the well known HTTPS port, 
 
 Third party iframes or scripts might initiate connections.
 
-### Mitigation
+#### Mitigation
 
 A permissions policy will control access, preventing third party use by default.
 
@@ -103,7 +105,7 @@ A permissions policy will control access, preventing third party use by default.
 
 An attacker might configure DNS entries to point to private addresses in the user's intranet, tricking the user into providing access to resources behind a firewall.
 
-### Mitigation
+#### Mitigation
 
 Hostnames that resolve to [non-public addresses](https://wicg.github.io/cors-rfc1918/#framework) would be rejected.
 
@@ -115,7 +117,7 @@ Thus connections to a loopback address (`127.0.0.0/8`, `::1/128`), a private net
 
 Use of the API may violate organization policies, that control which protocols may be used.
 
-### Mitigation
+#### Mitigation
 
 User agents may restrict use of the API when enterprise software policies are in effect.
 
@@ -125,7 +127,7 @@ User agents may restrict use of the API when enterprise software policies are in
 
 MITM attackers may hijack plaintext connections created using the API.
 
-### Mitigation
+#### Mitigation
 
 We should facilitate use of TLS on TCP connections.
 
