@@ -175,7 +175,13 @@ const options = {
     remoteAddress: 'example.com',
     remotePort: 7
 };
-navigator.openUDPSocket(options).then(udpSocket => { ... }).else(error => { ... });
+
+try {
+  const udpSocket = await navigator.openUDPSocket(options);
+  doStuffWith(udpSocket);
+} catch (err) {
+  // handle error
+}
 ```
 
 The UDP socket can use events to indicate when a packet can be sent or received. No send event is generated until after a packet has been sent.
