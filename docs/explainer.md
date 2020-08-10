@@ -41,6 +41,100 @@ With the shift away from browser plugins, native apps now provide the main alter
 User agents will need to carefully consider when to make the Raw Sockets API available to web applications,
 and what UI will be shown to the user.
 
+
+
+### Threat
+
+MITM attackers may inject sockets API calls into a web page.
+
+#### Mitigation
+
+The API will only available in secure contexts (HTTPS).
+
+
+
+### Threat
+
+A web app might initiate connections without the user realizing.
+
+#### Mitigation
+
+When initiating a connection, the user agent would show some UI.
+
+The user can be asked to specify a hostname or IP address, with an option to permit future connections to this host.
+
+![Example consent dialog](mocks/consent_dialog.png)
+
+
+
+### Threat
+
+Attackers may use the API to DDOS third parties.
+
+#### Mitigation
+
+Connection attempts would be rate limited.
+
+Connections will only be able to be initiated after transient activation (user interaction with the page).
+
+No transient activation would be required for reconnections. This is important for robustness.
+
+
+
+### Threat
+
+Attackers may use the API to by-pass third parties' CORS policies.
+
+#### Mitigation
+
+We could forbid the API from being used for TCP with the well known HTTPS port, whenever the destination host supports CORS.
+
+
+
+### Threat
+
+Third party iframes or scripts might initiate connections.
+
+#### Mitigation
+
+A permissions policy will control access, preventing third party use by default.
+
+
+
+### Threat
+
+An attacker might configure DNS entries to point to private addresses in the user's intranet, tricking the user into providing access to resources behind a firewall. Such access might be used to extract information or damage hardware.
+
+#### Mitigation
+
+Hostnames that resolve to [non-public addresses](https://wicg.github.io/cors-rfc1918/#framework) would be rejected.
+
+Thus connections to a loopback address (`127.0.0.0/8`, `::1/128`), a private network address (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `fc00::/7`) or a link-local address (`169.254.0.0/16`, `fe80::/10`) will fail unless a raw IP address is entered by the user.
+
+
+
+### Threat
+
+Use of the API may violate organization policies, that control which protocols may be used.
+
+#### Mitigation
+
+User agents may restrict use of the API when enterprise software policies are in effect. For example, user agents might by default not allow use of this API unless the user has permission to install new binaries.
+
+
+
+### Threat
+
+MITM attackers may hijack plaintext connections created using the API.
+
+#### Mitigation
+
+We should facilitate use of TLS on TCP connections.
+
+One option would be to allow TLS to be requested when opening a connection, like the [TCP and UDP Socket API](https://www.w3.org/TR/tcp-udp-sockets/)'s [useSecureTransport](https://www.w3.org/TR/tcp-udp-sockets/#widl-TCPOptions-useSecureTransport).
+
+Another option would be to provide a method that upgrades an existing TCP connection to use TLS. Use cases would include SMTP [STARTTLS](https://tools.ietf.org/html/rfc3207#section-4), IMAP [STARTTLS](https://tools.ietf.org/html/rfc2595#section-3.1) and POP [STLS](https://tools.ietf.org/html/rfc2595#section-4).
+
 ## TCP
 
 Applications will be able to request a TCP socket using a method on `navigator`:
