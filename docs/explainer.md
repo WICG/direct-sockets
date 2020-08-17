@@ -155,6 +155,8 @@ navigator.openTCPSocket(options).then(tcpSocket => { ... }).else(error => { ... 
 
 The `remoteAddress` member may be omitted or ignored - the user agent may invite the user to specify the address.
 
+There is currently no provision for setting the local address or port.
+
 The TCP socket can be used for reading and writing:
 
 ```
@@ -164,4 +166,48 @@ let writableStream = tcpSocket.writable;
 tcpSocket.close();
 ```
 
+To simplify security analysis, an API for listening for incoming connections is not yet being proposed.
+
 ## UDP
+
+To simplify security analysis, the initial proposal only supports cases where the web app initiates communication with a remote host.
+
+Received packets will only be routed if they came from the remote address and port used when opening the socket. Other packets will be dropped silently.
+
+
+```
+const options = {
+    remoteAddress: 'example.com',
+    remotePort: 7
+};
+
+try {
+  const udpSocket = await navigator.openUDPSocket(options);
+  doStuffWith(udpSocket);
+  ...
+} catch (err) {
+  // handle error
+} finally {
+  udpSocket.close();
+}
+```
+
+The `remoteAddress` member may be omitted or ignored - the user agent may invite the user to specify the address.
+
+There is currently no provision for setting the local address or port.
+
+`send` returns a promise, that resolves if the message is sent, and rejects otherwise.
+
+```
+let blob = ...;
+await udpSocket.send(blob);
+```
+
+The UDP socket is `async iterable`, so we can asynchronously iterate to read incoming messages:
+
+```
+for await (let [source, blob] of udpSocket) {
+  console.log('Received ' + blob.size + ' bytes from ' + source.remoteAddress);
+}
+```
+
