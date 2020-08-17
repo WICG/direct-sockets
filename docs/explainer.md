@@ -172,6 +172,9 @@ To simplify security analysis, an API for listening for incoming connections is 
 
 To simplify security analysis, the initial proposal only supports cases where the web app initiates communication with a remote host.
 
+Received packets will only be routed if they came from the remote address and port used when opening the socket. Other packets will be dropped silently.
+
+
 ```
 const options = {
     remoteAddress: 'example.com',
@@ -193,11 +196,11 @@ The `remoteAddress` member may be omitted or ignored - the user agent may invite
 
 There is currently no provision for setting the local address or port.
 
-`send` returns a promise, that resolves when a message is sent, or the send fails:
+`send` returns a promise, that resolves if the message is sent, and rejects otherwise.
 
 ```
 let blob = ...;
-await udpSocket.send(blob, {timeout: 5000});
+await udpSocket.send(blob);
 ```
 
 The UDP socket is `async iterable`, so we can asynchronously iterate to read incoming messages:
