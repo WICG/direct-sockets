@@ -155,6 +155,8 @@ navigator.openTCPSocket(options).then(tcpSocket => { ... }).else(error => { ... 
 
 The `remoteAddress` member may be omitted or ignored - the user agent may invite the user to specify the address.
 
+There is currently no provision for setting the local address or port.
+
 The TCP socket can be used for reading and writing:
 
 ```
@@ -179,10 +181,16 @@ const options = {
 try {
   const udpSocket = await navigator.openUDPSocket(options);
   doStuffWith(udpSocket);
+  ...
+  tcpSocket.close();
 } catch (err) {
   // handle error
 }
 ```
+
+The `remoteAddress` member may be omitted or ignored - the user agent may invite the user to specify the address.
+
+There is currently no provision for setting the local address or port.
 
 `send` returns a promise, that resolves when a message is sent, or the send fails:
 
