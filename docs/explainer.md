@@ -36,7 +36,7 @@ Developers have used browser plugins - such as Java applets, ActiveX, [Adobe Fle
 
 With the shift away from browser plugins, native apps now provide the main alternative. Widely used APIs include [POSIX sockets](https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/sys_socket.h.html), [Winsock](https://docs.microsoft.com/en-us/windows/win32/winsock/winsock-functions), [java.net](https://docs.oracle.com/javase/7/docs/api/java/net/package-summary.html) and [System.Net.Sockets](https://docs.microsoft.com/en-us/dotnet/api/system.net.sockets).
 
-JavaScript APIs for socket communication have been developed for B2G OS ([TCP](https://developer.mozilla.org/en-US/docs/Archive/B2G_OS/API/UDPSocket), [UDP](https://developer.mozilla.org/en-US/docs/Archive/B2G_OS/API/TCPSocket)) and Chrome Apps ([TCP](https://developer.chrome.com/apps/sockets_tcp), [UDP](https://developer.chrome.com/apps/sockets_udp)). An earlier proposed API for the web platform is the [TCP and UDP Socket API](https://www.w3.org/TR/tcp-udp-sockets/), which the System Applications Working Group published as an informative Working Group Note and is no longer progressing.
+JavaScript APIs for socket communication have been developed for B2G OS ([TCP](https://developer.mozilla.org/en-US/docs/Archive/B2G_OS/API/TCPSocket), [UDP](https://developer.mozilla.org/en-US/docs/Archive/B2G_OS/API/UDPSocket)) and Chrome Apps ([TCP](https://developer.chrome.com/apps/sockets_tcp), [UDP](https://developer.chrome.com/apps/sockets_udp)). An earlier proposed API for the web platform is the [TCP and UDP Socket API](https://www.w3.org/TR/tcp-udp-sockets/), which the System Applications Working Group published as an informative Working Group Note and is no longer progressing.
 
 
 
