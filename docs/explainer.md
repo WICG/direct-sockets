@@ -182,9 +182,10 @@ try {
   const udpSocket = await navigator.openUDPSocket(options);
   doStuffWith(udpSocket);
   ...
-  tcpSocket.close();
 } catch (err) {
   // handle error
+} finally {
+  udpSocket.close();
 }
 ```
 
