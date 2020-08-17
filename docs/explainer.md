@@ -139,6 +139,14 @@ One option would be to allow TLS to be requested when opening a connection, like
 
 Another option would be to provide a method that upgrades an existing TCP connection to use TLS. Use cases would include SMTP [STARTTLS](https://tools.ietf.org/html/rfc3207#section-4), IMAP [STARTTLS](https://tools.ietf.org/html/rfc2595#section-3.1) and POP [STLS](https://tools.ietf.org/html/rfc2595#section-4).
 
+
+## Privacy Considerations
+
+A user agent should deny permission to use this API in Private Browsing modes.
+
+If a user agent provides an option to permit future connections from an origin to specific hosts, they should provide a way for the user to clear the list of permitted destinations.
+
+
 ## TCP
 
 Applications will be able to request a TCP socket using a method on `navigator`:
