@@ -184,18 +184,18 @@ try {
 }
 ```
 
-The UDP socket can use events to indicate when a packet can be sent or received. No send event is generated until after a packet has been sent.
+`send` returns a promise, that resolves when a message is sent:
 
 ```
-udpSocket.onreceive = (e) => {
-  let received_blob = e.socket.receive();
-  // ...
-};
-
-udpSocket.onsend = (e) => {
-  let next_blob = ...;
-  e.socket.send(next_blob);
-};
-let first_blob = ...;
-e.socket.send(first_blob);
+let blob = ...;
+await udpSocket.send(blob);
 ```
+
+The UDP socket is `async iterable`, so we can asynchronously iterate to read incoming messages:
+
+```
+for await (let [source, blob] of udpSocket) {
+  console.log('Received ' + blob.size + ' bytes from ' + source.remoteAddress);
+}
+```
+
