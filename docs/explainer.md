@@ -184,11 +184,11 @@ try {
 }
 ```
 
-`send` returns a promise, that resolves when a message is sent:
+`send` returns a promise, that resolves when a message is sent, or the send fails:
 
 ```
 let blob = ...;
-await udpSocket.send(blob);
+await udpSocket.send(blob, {timeout: 5000});
 ```
 
 The UDP socket is `async iterable`, so we can asynchronously iterate to read incoming messages:
