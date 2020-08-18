@@ -9,6 +9,8 @@ Responses to the [Self-Review Questionnaire: Security and Privacy](https://w3cta
 
 When the user agrees to establish a socket connection with an information system, and the connection succeeds, that system's IP address and port, and any information it sends to the user agent, becomes available to the site.
 
+The destination system also receives the user's IP address and port, and any information the web app sends.
+
 
 ## 2.2 Is this specification exposing the minimum amount of information necessary to power the feature?
 
@@ -21,10 +23,12 @@ Implementors will want to carefully consider what information is revealed in the
 
 This specification deals with generic information.
 
+This specification allows devices to use their existing protocols for communication. These may or may not be secure. We intend to [facilitate](https://github.com/WICG/raw-sockets/blob/master/docs/explainer.md#mitigation-7) use of TLS.
+
 
 ## 2.4 How does this specification deal with sensitive information?
 
-This specification allows devices to use their existing protocols for communication. These may or may not be secure.
+See answer 2.3
 
 
 ## 2.5 Does this specification introduce new state for an origin that persists across browsing sessions?
