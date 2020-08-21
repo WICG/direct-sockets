@@ -133,7 +133,9 @@ MITM attackers may hijack plaintext connections created using the API.
 
 #### Mitigation
 
-We should facilitate use of TLS on TCP connections.
+User agents should reject connection attempts when [Content Security Policy](https://w3c.github.io/webappsec-csp/) allows the `unsafe-eval` source expression. This prevents sites from executing [eval()](https://tc39.es/ecma262/#sec-eval-x) on data retrieved using this API.
+
+We should also facilitate use of TLS on TCP connections.
 
 One option would be to allow TLS to be requested when opening a connection, like the [TCP and UDP Socket API](https://www.w3.org/TR/tcp-udp-sockets/)'s [useSecureTransport](https://www.w3.org/TR/tcp-udp-sockets/#widl-TCPOptions-useSecureTransport).
 
@@ -142,9 +144,9 @@ Another option would be to provide a method that upgrades an existing TCP connec
 
 ## Privacy Considerations
 
-A user agent should deny permission to use this API in Private Browsing modes.
+If a user agent provides an option to permit future connections from an origin to specific hosts, they should provide a way for the user to clear the list of permitted destinations. The list of permitted destinations should also be cleared when the user clears data for that origin.
 
-If a user agent provides an option to permit future connections from an origin to specific hosts, they should provide a way for the user to clear the list of permitted destinations.
+A user agent should not record permitted destinations if the API is used in Private Browsing modes.
 
 
 ## TCP
