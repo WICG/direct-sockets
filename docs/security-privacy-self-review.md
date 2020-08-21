@@ -1,6 +1,6 @@
 
 
-Responses to the [Self-Review Questionnaire: Security and Privacy](https://w3ctag.github.io/security-questionnaire/) for the [Raw Sockets API](https://github.com/WICG/raw-sockets/)
+Responses to the [Self-Review Questionnaire: Security and Privacy](https://w3ctag.github.io/security-questionnaire/) for the [Direct Sockets API](https://github.com/WICG/raw-sockets/)
 
 
 

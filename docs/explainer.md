@@ -1,4 +1,4 @@
-# Raw Sockets
+# Direct Sockets
 
 ## Background
 
@@ -42,7 +42,7 @@ JavaScript APIs for socket communication have been developed for B2G OS ([TCP](h
 
 ## Security Considerations
 
-User agents will need to carefully consider when to make the Raw Sockets API available to web applications,
+User agents will need to carefully consider when to make the Direct Sockets API available to web applications,
 and what UI will be shown to the user.
 
 
