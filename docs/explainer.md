@@ -39,6 +39,14 @@ With the shift away from browser plugins, native apps now provide the main alter
 JavaScript APIs for socket communication have been developed for B2G OS ([TCP](https://developer.mozilla.org/en-US/docs/Archive/B2G_OS/API/TCPSocket), [UDP](https://developer.mozilla.org/en-US/docs/Archive/B2G_OS/API/UDPSocket)) and Chrome Apps ([TCP](https://developer.chrome.com/apps/sockets_tcp), [UDP](https://developer.chrome.com/apps/sockets_udp)). An earlier proposed API for the web platform is the [TCP and UDP Socket API](https://www.w3.org/TR/tcp-udp-sockets/), which the System Applications Working Group published as an informative Working Group Note and is no longer progressing.
 
 
+## Initial Focus
+
+The initial focus is on supporting connection to a single legacy server or device.
+
+Distributed Hash Tables are not an immediate focus. The current proposal would require the user to type the address of each node, which would not be feasible for large tables.
+
+IP multicast and UDP Broadcast are currently out of scope.
+
 
 ## Security Considerations
 
