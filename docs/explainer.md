@@ -105,7 +105,7 @@ We could forbid the API from being used for TCP with the well known HTTPS port, 
 
 ### Threat
 
-Third party iframes or scripts might initiate connections.
+Third party iframes (such as ads) might initiate connections.
 
 #### Mitigation
 
