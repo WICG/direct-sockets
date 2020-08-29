@@ -1,3 +1,5 @@
+<img src="https://wicg.github.io/raw-sockets/logo-socket.svg" height="100" align=right>
+
 # raw-sockets
 
 This is a proposal for a future Raw Sockets web platform API.
