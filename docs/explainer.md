@@ -125,6 +125,7 @@ Hostnames that resolve to [non-public addresses](https://wicg.github.io/cors-rfc
 
 Thus connections to a loopback address (`127.0.0.0/8`, `::1/128`), a private network address (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `fc00::/7`) or a link-local address (`169.254.0.0/16`, `fe80::/10`) will fail unless a raw IP address is entered by the user.
 
+An exception will be hostnames ending with ".local" - these are resolved using [mDNS](https://tools.ietf.org/html/rfc6762).
 
 
 ### Threat
