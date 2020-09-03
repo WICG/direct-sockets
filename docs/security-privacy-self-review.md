@@ -82,7 +82,7 @@ By default, permissions policy prevents use from third-party contexts.
 
 ## 2.14 How does this specification work in the context of a user agent’s Private Browsing or "incognito" mode?
 
-A user agent should deny permission to use this API in Private Browsing modes.
+A user agent should not record permitted destinations if the API is used in Private Browsing modes.
 
 
 ## 2.15 Does this specification have a "Security Considerations" and "Privacy Considerations" section?
@@ -94,7 +94,7 @@ The specification has a Privacy Considerations section.
 
 ## 2.16 Does this specification allow downgrading default security characteristics?
 
-No.
+A site could use this API to talk over HTTP (or other non-secure protocol) to its own server from a page that was loaded over HTTPS.
 
 
 ## 2.17 What should this questionnaire have asked?

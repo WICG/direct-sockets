@@ -1,3 +1,5 @@
+<img src="https://wicg.github.io/raw-sockets/logo-socket.svg" height="100" align=right>
+
 # Direct Sockets
 
 ## Background
@@ -38,6 +40,14 @@ With the shift away from browser plugins, native apps now provide the main alter
 
 JavaScript APIs for socket communication have been developed for B2G OS ([TCP](https://developer.mozilla.org/en-US/docs/Archive/B2G_OS/API/TCPSocket), [UDP](https://developer.mozilla.org/en-US/docs/Archive/B2G_OS/API/UDPSocket)) and Chrome Apps ([TCP](https://developer.chrome.com/apps/sockets_tcp), [UDP](https://developer.chrome.com/apps/sockets_udp)). An earlier proposed API for the web platform is the [TCP and UDP Socket API](https://www.w3.org/TR/tcp-udp-sockets/), which the System Applications Working Group published as an informative Working Group Note and is no longer progressing.
 
+
+## Initial Focus
+
+The initial focus is on supporting connection to a single legacy server or device.
+
+Distributed Hash Tables are not an immediate focus. The current proposal would require the user to type the address of each node, which would not be feasible for large tables.
+
+IP multicast and UDP Broadcast are currently out of scope.
 
 
 ## Security Considerations
@@ -97,7 +107,7 @@ We could forbid the API from being used for TCP with the well known HTTPS port, 
 
 ### Threat
 
-Third party iframes or scripts might initiate connections.
+Third party iframes (such as ads) might initiate connections.
 
 #### Mitigation
 
@@ -112,10 +122,12 @@ An attacker might configure DNS entries to point to private addresses in the use
 #### Mitigation
 
 Hostnames that resolve to [non-public addresses](https://wicg.github.io/cors-rfc1918/#framework) would be rejected.
+An exception is made for hostnames ending with `.local` - these are resolved using [mDNS](https://tools.ietf.org/html/rfc6762).
 
-Thus connections to a loopback address (`127.0.0.0/8`, `::1/128`), a private network address (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `fc00::/7`) or a link-local address (`169.254.0.0/16`, `fe80::/10`) will fail unless a raw IP address is entered by the user.
+Thus connections to a loopback address (`127.0.0.0/8`, `::1/128`), a private network address (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `fc00::/7`) or a link-local address (`169.254.0.0/16`, `fe80::/10`) will fail unless a raw IP address or a `*.local` hostname is entered by the user.
 
-
+For example, if the user enters `lights.example.com` and this resolves to `192.168.12.34`, we reject the connection attempt.
+If the user enters `lights.local`, and mDNS resolves this to `192.168.12.34`, the connection is allowed to proceed, just as if the user had typed `192.168.12.34`.
 
 ### Threat
 
@@ -133,7 +145,9 @@ MITM attackers may hijack plaintext connections created using the API.
 
 #### Mitigation
 
-We should facilitate use of TLS on TCP connections.
+User agents should reject connection attempts when [Content Security Policy](https://w3c.github.io/webappsec-csp/) allows the `unsafe-eval` source expression. This prevents sites from executing [eval()](https://tc39.es/ecma262/#sec-eval-x) on data retrieved using this API.
+
+We should also facilitate use of TLS on TCP connections.
 
 One option would be to allow TLS to be requested when opening a connection, like the [TCP and UDP Socket API](https://www.w3.org/TR/tcp-udp-sockets/)'s [useSecureTransport](https://www.w3.org/TR/tcp-udp-sockets/#widl-TCPOptions-useSecureTransport).
 
@@ -142,9 +156,9 @@ Another option would be to provide a method that upgrades an existing TCP connec
 
 ## Privacy Considerations
 
-A user agent should deny permission to use this API in Private Browsing modes.
+If a user agent provides an option to permit future connections from an origin to specific hosts, they should provide a way for the user to clear the list of permitted destinations. The list of permitted destinations should also be cleared when the user clears data for that origin.
 
-If a user agent provides an option to permit future connections from an origin to specific hosts, they should provide a way for the user to clear the list of permitted destinations.
+A user agent should not record permitted destinations if the API is used in Private Browsing modes.
 
 
 ## TCP
