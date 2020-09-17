@@ -1,6 +1,6 @@
 <img src="https://wicg.github.io/raw-sockets/logo-socket.svg" height="100" align=right>
 
-# Raw Sockets
+# Direct Sockets
 
 ## Background
 
@@ -52,7 +52,7 @@ IP multicast and UDP Broadcast are currently out of scope.
 
 ## Security Considerations
 
-User agents will need to carefully consider when to make the Raw Sockets API available to web applications,
+User agents will need to carefully consider when to make the Direct Sockets API available to web applications,
 and what UI will be shown to the user.
 
 

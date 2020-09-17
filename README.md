@@ -2,7 +2,7 @@
 
 # raw-sockets
 
-This is a proposal for a future Raw Sockets web platform API.
+This is a proposal for a future Direct Sockets web platform API.
 
 ## Links
 
