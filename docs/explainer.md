@@ -13,7 +13,6 @@ The initial motivating use case is to support creating a web app that talks to s
 - [Secure Shell](https://en.wikipedia.org/wiki/Secure_Shell)
 - [Remote Desktop Protocol](https://en.wikipedia.org/wiki/Remote_Desktop_Protocol)
 - [printer protocols](https://en.wikipedia.org/wiki/List_of_printing_protocols)
-- [industrial electronic devices](https://en.wikipedia.org/wiki/Modbus)
 - Mail
 - [IRC](https://en.wikipedia.org/wiki/Internet_Relay_Chat)
 - [IOT](https://en.wikipedia.org/wiki/Internet_of_things) smart devices
