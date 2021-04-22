@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>
+      Direct Sockets API
+    </title>
+    <script src="https://www.w3.org/Tools/respec/respec-w3c" class="remove"
+    defer></script>
+    <script class='remove'>
+      var respecConfig = {
+        specStatus: "unofficial",
+        github: {
+          repoURL: "WICG/raw-sockets",
+          branch: "main"
+        },
+        group: "wicg",
+        editors: [
+        {
+          name: "Eric Willigers",
+          company: "Google Inc.",
+          companyURL: "https://google.com",
+          w3cid: 67534
+        }],
+        xref: "web-platform",
+        // eventually add mdn: true, and caniuse: "direct-sockets"
+      };
+    </script>
+  </head>
+  <body data-cite="Direct Sockets">
+    <section id="abstract">
+      <p>
+        This specification defines an API that allows web applications to talk
+        to servers and devices that have their own protocols incompatible with
+        those available on the web.
+      </p>
+    </section>
+    <section>
+      <h2>
+        API definition
+      </h2>
+      <section data-dfn-for="Navigator">
+        <h3>
+          Extensions to the `Navigator` interface
+        </h3>
+        <pre class="idl">
+          partial interface Navigator {
+            [SecureContext] Promise&lt;TCPSocket&gt; openTCPSocket(optional SocketOptions options = {});
+            [SecureContext] Promise&lt;UDPSocket&gt; openUDPSocket(optional SocketOptions options = {});
+          };
+        </pre>
+        <p>
+          {{Navigator/openTCPSocket}} is used to open a client TCP socket.
+        </p>
+        <p>
+          {{Navigator/openUDPSocket}} is used to open a 'client' UCP socket,
+          that only exchanges datagrams with a specific remote address and
+          port.
+        </p>
+        <p class="note">
+          The API currently provides no support for server sockets, that can
+          receive packets from arbitrary remote addresses and ports.
+        </p>
+        <p>
+          User agents that do not support direct sockets SHOULD NOT expose
+          {{Navigator/openTCPSocket()}} or {{Navigator/openUDPSocket()}} on the
+          {{Navigator}} interface.
+        </p>
+        <section data-dfn-for="SocketOptions">
+          <h3>
+            `SocketOptions` dictionary
+          </h3>
+          <pre class="idl">
+          dictionary SocketOptions {
+            DOMString localAddress;
+            unsigned short localPort;
+
+            DOMString remoteAddress;
+            unsigned short remotePort;
+
+            unsigned long sendBufferSize;
+            unsigned long receiveBufferSize;
+
+            unsigned long keepAlive;
+            boolean noDelay;
+          };
+        </pre>
+          <p>
+            The <dfn>SocketOptions</dfn> dictionary consists of several
+            optional members:
+          </p>
+          <dl data-sort="">
+            <dt>
+              <dfn>localAddress</dfn> member
+            </dt>
+            <dd>
+              The IP address (or hostname) on the local host that the socket
+              should be bound to.
+            </dd>
+            <dt>
+              <dfn>localPort</dfn> member
+            </dt>
+            <dd>
+              The port that the socket should be bound to. When omitted, or 0,
+              any port can be used.
+            </dd>
+            <dt>
+              <dfn>remoteAddress</dfn> member
+            </dt>
+            <dd>
+              The IP address (or hostname) of the host that the socket will
+              connect to.
+            </dd>
+            <dt>
+              <dfn>remotePort</dfn> member
+            </dt>
+            <dd>
+              The port on the remote host, that the socket will connect to.
+            </dd>
+            <dt>
+              <dfn>sendBufferSize</dfn> member
+            </dt>
+            <dd>
+              The requested send buffer size, in bytes.
+            </dd>
+            <dt>
+              <dfn>receiveBufferSize</dfn> member
+            </dt>
+            <dd>
+              The requested receive buffer size, in bytes.
+            </dd>
+            <dt>
+              <dfn>keepAlive</dfn> member
+            </dt>
+            <dd>
+              This is only relevant for TCP. It enabled TCP Keep-Alive and
+              specifies the keep alive time, in seconds.
+            </dd>
+            <dt>
+              <dfn>noDelay</dfn> member
+            </dt>
+            <dd>
+              This is only relevant for TCP. It enables the TCP_NODELAY option,
+              disabling <a href=
+              "https://en.wikipedia.org/wiki/Nagle%27s_algorithm">Nagle's
+              algorithm</a>.
+            </dd>
+          </dl>
+          <div class="note">
+            The only current implementation (Chromium) ignores
+            {{SocketOptions/localAddress}} and {{SocketOptions/localPort}} and
+            {{SocketOptions/keepAlive}}.
+          </div>
+        </section>
+        <section data-dfn-for="TCPSocket">
+          <h3>
+            `TCPSocket` interface
+          </h3>
+          <pre class="idl">
+          [Exposed=Window, SecureContext] interface TCPSocket {
+            Promise&lt;undefined&gt; close();
+
+            readonly attribute DOMString remoteAddress;
+            readonly attribute unsigned short remotePort;
+            readonly attribute ReadableStream readable;
+            readonly attribute WritableStream writable;
+          };
+        </pre>
+          <div class="note">
+            The only current implementation (Chromium) does not support
+            <a href="https://streams.spec.whatwg.org/#enumdef-readablestreamreadermode">
+            "byob"</a> mode for {{TCPSocket/readable}}. See [[streams]] for
+            more information about streams.
+          </div>
+        </section>
+        <section data-dfn-for="UDPSocket">
+          <h3>
+            `UDPSocket` interface
+          </h3>
+          <pre class="idl">
+          [Exposed=Window, SecureContext] interface UDPSocket {
+            async iterable&lt;SocketOptions, Blob&gt;;
+
+            Promise&lt;undefined&gt; send(Blob data);
+            Promise&lt;undefined&gt; close();
+
+            readonly attribute DOMString remoteAddress;
+            readonly attribute unsigned short remotePort;
+          };
+          </pre>
+          <dl>
+            <dd>
+              {{SocketOptions/remoteAddress}} and {{SocketOptions/remotePort}}
+              are the only members set in the {{SocketOptions}} returned by the
+              iterator.
+            </dd>
+            <dd>
+              <section class="informative">
+                <h4>
+                  Usage Example
+                </h4>
+                <p>
+                  Clients can asynchronously iterate to read incoming
+                  datagrams. See [[fileapi]] for more information about blobs.
+                </p>
+                <pre class="example javascript" title="Basic usage">
+            for await (let [source, blob] of udpSocket) {
+              console.log('Received ' + blob.size + ' bytes from ' + source.remoteAddress);
+            }
+          </pre>
+              </section>
+            </dd>
+          </dl>
+        </section>
+      </section>
+      <section id="conformance"></section>
+      <section id="idl-index"></section>
+      <section class="informative" data-cite="accessibility">
+        <h2>
+          Accessibility
+        </h2>
+        <p>
+          This specification has no known accessibility considerations.
+        </p>
+      </section>
+      <section class="informative" data-cite="security">
+        <h2>
+          Security and privacy considerations
+        </h2>
+        <ul>
+          <li>See <a href=
+          "https://github.com/WICG/raw-sockets/blob/main/docs/explainer.md#security-considerations">
+            Explainer</a>.
+          </li>
+        </ul>
+      </section>
+    </section>
+  </body>
+</html>
