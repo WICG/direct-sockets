@@ -32,7 +32,7 @@
       <p>
         This specification defines an API that allows web applications to talk
         to servers and devices that have their own protocols incompatible with
-        what’s available on the web.
+        those available on the web.
       </p>
     </section>
     <section>
@@ -49,6 +49,18 @@
             [SecureContext] Promise&lt;UDPSocket&gt; openUDPSocket(optional SocketOptions options = {});
           };
         </pre>
+        <p>
+          {{Navigator/openTCPSocket}} is used to open a client TCP socket.
+        </p>
+        <p>
+          {{Navigator/openUDPSocket}} is used to open a 'client' UCP socket,
+          that only exchanges datagrams with a specific remote address and
+          port.
+        </p>
+        <p class="note">
+          The API currently provides no support for server sockets, that can
+          receive packets from arbitrary remote addresses and ports.
+        </p>
         <p>
           User agents that do not support direct sockets SHOULD NOT expose
           {{Navigator/openTCPSocket()}} or {{Navigator/openUDPSocket()}} on the
@@ -69,7 +81,7 @@
             unsigned long sendBufferSize;
             unsigned long receiveBufferSize;
 
-            boolean keepAlive;
+            unsigned long keepAlive;
             boolean noDelay;
           };
         </pre>
@@ -81,37 +93,63 @@
             <dt>
               <dfn>localAddress</dfn> member
             </dt>
+            <dd>
+              The IP address (or hostname) on the local host that the socket
+              should be bound to.
+            </dd>
             <dt>
               <dfn>localPort</dfn> member
             </dt>
+            <dd>
+              The port that the socket should be bound to. When omitted, or 0,
+              any port can be used.
+            </dd>
             <dt>
               <dfn>remoteAddress</dfn> member
             </dt>
+            <dd>
+              The IP address (or hostname) of the host that the socket will
+              connect to.
+            </dd>
             <dt>
               <dfn>remotePort</dfn> member
             </dt>
+            <dd>
+              The port on the remote host, that the socket will connect to.
+            </dd>
             <dt>
               <dfn>sendBufferSize</dfn> member
             </dt>
+            <dd>
+              The requested send buffer size, in bytes.
+            </dd>
             <dt>
               <dfn>receiveBufferSize</dfn> member
             </dt>
+            <dd>
+              The requested receive buffer size, in bytes.
+            </dd>
             <dt>
               <dfn>keepAlive</dfn> member
             </dt>
             <dd>
-              Only relevant for TCP.
+              This is only relevant for TCP. It enabled TCP Keep-Alive and
+              specifies the keep alive time, in seconds.
             </dd>
             <dt>
               <dfn>noDelay</dfn> member
             </dt>
             <dd>
-              Only relevant for TCP.
+              This is only relevant for TCP. It enables the TCP_NODELAY option,
+              disabling <a href=
+              "https://en.wikipedia.org/wiki/Nagle%27s_algorithm">Nagle's
+              algorithm</a>.
             </dd>
           </dl>
           <div class="note">
             The only current implementation (Chromium) ignores
-            {{SocketOptions/localAddress}} and {{SocketOptions/localPort}}.
+            {{SocketOptions/localAddress}} and {{SocketOptions/localPort}} and
+            {{SocketOptions/keepAlive}}.
           </div>
         </section>
         <section data-dfn-for="TCPSocket">
@@ -129,9 +167,10 @@
           };
         </pre>
           <div class="note">
-            The only current implementation (Chromium) does not support "byob"
-            mode for {{TCPSocket/readable}}. See [[streams]] for more
-            information about streams.
+            The only current implementation (Chromium) does not support
+            <a href="https://streams.spec.whatwg.org/#enumdef-readablestreamreadermode">
+            "byob"</a> mode for {{TCPSocket/readable}}. See [[streams]] for
+            more information about streams.
           </div>
         </section>
         <section data-dfn-for="UDPSocket">
@@ -148,21 +187,30 @@
             readonly attribute DOMString remoteAddress;
             readonly attribute unsigned short remotePort;
           };
-        </pre>
-          <section class="informative">
-            <h4>
-              Usage Example
-            </h4>
-            <p>
-              Clients can asynchronously iterate to read incoming datagrams.
-              See [[fileapi]] for more information about blobs.
-            </p>
-            <pre class="example javascript" title="Basic usage">
+          </pre>
+          <dl>
+            <dd>
+              {{SocketOptions/remoteAddress}} and {{SocketOptions/remotePort}}
+              are the only members set in the {{SocketOptions}} returned by the
+              iterator.
+            </dd>
+            <dd>
+              <section class="informative">
+                <h4>
+                  Usage Example
+                </h4>
+                <p>
+                  Clients can asynchronously iterate to read incoming
+                  datagrams. See [[fileapi]] for more information about blobs.
+                </p>
+                <pre class="example javascript" title="Basic usage">
             for await (let [source, blob] of udpSocket) {
               console.log('Received ' + blob.size + ' bytes from ' + source.remoteAddress);
             }
           </pre>
-          </section>
+              </section>
+            </dd>
+          </dl>
         </section>
       </section>
       <section id="conformance"></section>
