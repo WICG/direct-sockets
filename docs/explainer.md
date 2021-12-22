@@ -1,4 +1,4 @@
-<img src="https://wicg.github.io/raw-sockets/logo-socket.svg" height="100" align=right>
+<img src="https://wicg.github.io/direct-sockets/logo-socket.svg" height="100" align=right>
 
 # Direct Sockets
 
