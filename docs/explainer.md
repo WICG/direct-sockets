@@ -48,6 +48,15 @@ Distributed Hash Tables are not an immediate focus. The current proposal would r
 
 IP multicast and UDP Broadcast are currently out of scope.
 
+## Permissions Policy integration
+
+This specification defines a policy-controlled permission identified by the string `direct-sockets`. Its default allowlist is `self`.
+
+```
+Permissions-Policy: direct-sockets=(self)
+```
+
+This [`Permissions-Policy`](https://chromestatus.com/feature/5745992911552512) header determines whether a `navigator.openTCPSocket({...})` or `navigator.openUDPSocket({...})` call immediately rejects with a `NotAllowedError` `DOMException`.
 
 ## Security Considerations
 
