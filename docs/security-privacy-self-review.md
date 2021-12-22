@@ -1,6 +1,6 @@
 
 
-Responses to the [Self-Review Questionnaire: Security and Privacy](https://w3ctag.github.io/security-questionnaire/) for the [Direct Sockets API](https://github.com/WICG/raw-sockets/)
+Responses to the [Self-Review Questionnaire: Security and Privacy](https://w3ctag.github.io/security-questionnaire/) for the [Direct Sockets API](https://github.com/WICG/direct-sockets/)
 
 
 
@@ -23,7 +23,7 @@ Implementors will want to carefully consider what information is revealed in the
 
 This specification deals with generic information.
 
-This specification allows devices to use their existing protocols for communication. These may or may not be secure. We intend to [facilitate](https://github.com/WICG/raw-sockets/blob/master/docs/explainer.md#mitigation-7) use of TLS.
+This specification allows devices to use their existing protocols for communication. These may or may not be secure. We intend to [facilitate](https://github.com/WICG/direct-sockets/blob/master/docs/explainer.md#mitigation-7) use of TLS.
 
 
 ## 2.4 How does this specification deal with sensitive information?
