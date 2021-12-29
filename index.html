@@ -234,6 +234,23 @@
           </li>
         </ul>
       </section>
+      <section id="permissions-policy" data-cite="permissions-policy">
+      <h2>
+        Permissions Policy integration
+      </h2>
+      <p>
+        This specification defines a policy-controlled permission identified by
+        the string <code><dfn class="permission">"direct-sockets"</dfn></code>. Its
+        <a>default allowlist</a> is '`self`'.
+      </p>
+      <div class="note">
+        <p>
+          A <a>document</a>’s permission policy determines whether a
+          {{Navigator/openTCPSocket(...)}} or {{Navigator/openUDPSocket(...)}} call immediately rejects with a
+          {{"NotAllowedError"}} {{DOMException}}.
+        </p>
+      </div>
+    </section>
     </section>
   </body>
 </html>
