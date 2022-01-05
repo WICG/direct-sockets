@@ -45,15 +45,15 @@
         </h3>
         <pre class="idl">
           partial interface Navigator {
-            [SecureContext] Promise&lt;TCPSocket&gt; openTCPSocket(optional SocketOptions options = {});
-            [SecureContext] Promise&lt;UDPSocket&gt; openUDPSocket(optional SocketOptions options = {});
+            [SecureContext] Promise&lt;TCPSocket&gt; openTCPSocket(optional TCPSocketOptions options = {});
+            [SecureContext] Promise&lt;UDPSocket&gt; openUDPSocket(optional UDPSocketOptions options = {});
           };
         </pre>
         <p>
           {{Navigator/openTCPSocket}} is used to open a client TCP socket.
         </p>
         <p>
-          {{Navigator/openUDPSocket}} is used to open a 'client' UCP socket,
+          {{Navigator/openUDPSocket}} is used to open a 'client' UDP socket,
           that only exchanges datagrams with a specific remote address and
           port.
         </p>
@@ -80,16 +80,13 @@
 
             unsigned long sendBufferSize;
             unsigned long receiveBufferSize;
-
-            unsigned long keepAlive;
-            boolean noDelay;
           };
-        </pre>
+          </pre>
           <p>
             The <dfn>SocketOptions</dfn> dictionary consists of several
             optional members:
           </p>
-          <dl data-sort="">
+          <dl>
             <dt>
               <dfn>localAddress</dfn> member
             </dt>
@@ -129,28 +126,74 @@
             <dd>
               The requested receive buffer size, in bytes.
             </dd>
-            <dt>
-              <dfn>keepAlive</dfn> member
-            </dt>
-            <dd>
-              This is only relevant for TCP. It enabled TCP Keep-Alive and
-              specifies the keep alive time, in seconds.
-            </dd>
+          </dl>
+          <div class="note">
+            The only current implementation (Chromium) ignores
+            {{SocketOptions/localAddress}} and {{SocketOptions/localPort}}.
+          </div>
+        </section>
+        <section data-dfn-for="TCPSocketOptions">
+          <h3>
+            `TCPSocketOptions` dictionary
+          </h3>
+          <pre class="idl">
+          dictionary TCPKeepAliveOptions {
+            boolean enable;
+            [Clamp] unsigned short delay; 
+          };
+          
+          dictionary TCPSocketOptions : SocketOptions {
+            boolean noDelay;
+            TCPKeepAliveOptions keepAliveOptions;
+          };
+          </pre>
+          <p>
+            The <dfn>{{TCPSocketOptions}}</dfn> dictionary inherits all attributes 
+            from {{SocketOptions}} and exposes optional TCP-specific options.
+          </p>
+          <dl>
             <dt>
               <dfn>noDelay</dfn> member
             </dt>
             <dd>
-              This is only relevant for TCP. It enables the TCP_NODELAY option,
+              Enables the `TCP_NODELAY` option,
               disabling <a href=
               "https://en.wikipedia.org/wiki/Nagle%27s_algorithm">Nagle's
               algorithm</a>.
             </dd>
+            <dt>
+              <dfn>keepAliveOptions</dfn> member
+            </dt>
+            <dd>
+              Configures TCP Keep-Alive by setting `SO_KEEPALIVE` option on the socket via <dfn>{{TCPKeepAliveOptions}}</dfn>.
+              <dl data-dfn-for="TCPKeepAliveOptions">
+                <dt> 
+                  <dfn>enable</dfn> member 
+                </dt>
+                <dd> 
+                  Enables/disables TCP Keep-Alive. 
+                </dd>
+                <dt>
+                  <dfn>delay</dfn> member
+                </dt>
+                <dd>
+                  Specifies delay in seconds. Must be supplied if and only if {{TCPKeepAliveOptions/enable}} is true. Negative/overflow values will be clamped to match the `unsigned short` range.
+                </dd>
+              </dl>
+            </dd>
           </dl>
-          <div class="note">
-            The only current implementation (Chromium) ignores
-            {{SocketOptions/localAddress}} and {{SocketOptions/localPort}} and
-            {{SocketOptions/keepAlive}}.
-          </div>
+        </section>
+        <section data-dfn-for="UDPSocketOptions">
+          <h3>
+            `UDPSocketOptions` dictionary
+          </h3>
+          <pre class="idl">
+          dictionary UDPSocketOptions : SocketOptions {};
+          </pre>
+          <p>
+            The <dfn>UDPSocketOptions</dfn> dictionary inherits all attributes 
+            from {{SocketOptions}}.
+          </p>
         </section>
         <section data-dfn-for="TCPSocket">
           <h3>

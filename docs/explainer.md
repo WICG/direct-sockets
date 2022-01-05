@@ -177,8 +177,11 @@ Applications will be able to request a TCP socket using a method on `navigator`:
 const options = {
     remoteAddress: 'example.com',
     remotePort: 7,
-    keepAlive: false,
-    noDelay: false
+    noDelay: false,
+    keepAliveOptions: {
+        enable: true,
+        delay: 720
+    }
 };
 navigator.openTCPSocket(options).then(tcpSocket => { ... }).else(error => { ... });
 ```
