@@ -178,10 +178,8 @@ const options = {
     remoteAddress: 'example.com',
     remotePort: 7,
     noDelay: false,
-    keepAliveOptions: {
-        enable: true,
-        delay: 720
-    }
+    keepAlive: true,
+    keepAliveDelay: 720_000
 };
 navigator.openTCPSocket(options).then(tcpSocket => { ... }).else(error => { ... });
 ```
