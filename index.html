@@ -140,7 +140,7 @@
           dictionary TCPSocketOptions : SocketOptions {
             boolean noDelay;
             boolean keepAlive;
-            [Clamp] unsigned long keepAliveDelay;
+            [EnforceRange] unsigned long keepAliveDelay;
           };
           </pre>
           <p>
