@@ -137,14 +137,10 @@
             `TCPSocketOptions` dictionary
           </h3>
           <pre class="idl">
-          dictionary TCPKeepAliveOptions {
-            boolean enable;
-            [Clamp] unsigned short delay; 
-          };
-          
           dictionary TCPSocketOptions : SocketOptions {
             boolean noDelay;
-            TCPKeepAliveOptions keepAliveOptions;
+            boolean keepAlive;
+            [EnforceRange] unsigned long keepAliveDelay;
           };
           </pre>
           <p>
@@ -162,24 +158,17 @@
               algorithm</a>.
             </dd>
             <dt>
-              <dfn>keepAliveOptions</dfn> member
+              <dfn>keepAlive</dfn> member
             </dt>
             <dd>
-              Configures TCP Keep-Alive by setting `SO_KEEPALIVE` option on the socket via <dfn>{{TCPKeepAliveOptions}}</dfn>.
-              <dl data-dfn-for="TCPKeepAliveOptions">
-                <dt> 
-                  <dfn>enable</dfn> member 
-                </dt>
-                <dd> 
-                  Enables/disables TCP Keep-Alive. 
-                </dd>
-                <dt>
-                  <dfn>delay</dfn> member
-                </dt>
-                <dd>
-                  Specifies delay in seconds. Must be supplied if and only if {{TCPKeepAliveOptions/enable}} is true. Negative/overflow values will be clamped to match the `unsigned short` range.
-                </dd>
-              </dl>
+              Enables/disables TCP Keep-Alive by setting `SO_KEEPALIVE` option on the socket. 
+            </dd>
+            <dt>
+              <dfn>keepAliveDelay</dfn> member
+            </dt>
+            <dd>
+              Specifies the Keep-Alive ping delay in milliseconds. Must be specified only if
+              {{TCPSocketOptions/keepAlive}} is set to `true`.
             </dd>
           </dl>
         </section>
