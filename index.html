@@ -197,12 +197,15 @@
             readonly attribute ReadableStream readable;
             readonly attribute WritableStream writable;
           };
-        </pre>
+          </pre>
           <div class="note">
             The only current implementation (Chromium) does not support
             <a href="https://streams.spec.whatwg.org/#enumdef-readablestreamreadermode">
             "byob"</a> mode for {{TCPSocket/readable}}. See [[streams]] for
             more information about streams.
+          </div>
+          <div class="note">
+            {{TCPSocket/readable}} and {{TCPSocket/writable}} operate on the {{BufferSource}} object.
           </div>
         </section>
         <section data-dfn-for="UDPSocket">
@@ -211,38 +214,58 @@
           </h3>
           <pre class="idl">
           [Exposed=Window, SecureContext] interface UDPSocket {
-            async iterable&lt;SocketOptions, Blob&gt;;
-
-            Promise&lt;undefined&gt; send(Blob data);
             Promise&lt;undefined&gt; close();
 
             readonly attribute DOMString remoteAddress;
             readonly attribute unsigned short remotePort;
+            readonly attribute unsigned short localPort;
+            readonly attribute ReadableStream readable;
+            readonly attribute WritableStream writable;
           };
           </pre>
-          <dl>
-            <dd>
-              {{SocketOptions/remoteAddress}} and {{SocketOptions/remotePort}}
-              are the only members set in the {{SocketOptions}} returned by the
-              iterator.
-            </dd>
-            <dd>
-              <section class="informative">
-                <h4>
-                  Usage Example
-                </h4>
-                <p>
-                  Clients can asynchronously iterate to read incoming
-                  datagrams. See [[fileapi]] for more information about blobs.
-                </p>
-                <pre class="example javascript" title="Basic usage">
-            for await (let [source, blob] of udpSocket) {
-              console.log('Received ' + blob.size + ' bytes from ' + source.remoteAddress);
-            }
-          </pre>
-              </section>
-            </dd>
-          </dl>
+          <div class="note">
+            The only current implementation (Chromium) does not support
+            <a href="https://streams.spec.whatwg.org/#enumdef-readablestreamreadermode">
+            "byob"</a> mode for {{UDPSocket/readable}}. See [[streams]] for
+            more information about streams.
+          </div>
+          <div class="note">
+            {{UDPSocket/readable}} and {{UDPSocket/writable}} operate on the {{UDPMessage}} object.
+          </div>
+          <section data-dfn-for="UDPMessage">
+            <h3>
+              `UDPMessage` dictionary
+            </h3>
+            <pre class="idl">
+            dictionary UDPMessage {
+              ArrayBuffer    data;
+              DOMString      remoteAddress;
+              unsigned short remotePort;
+            };
+            </pre>
+            <dl>
+              <dt>
+                <dfn>data</dfn> member
+              </dt>
+              <dd>
+                The user message represented as an {{ArrayBuffer}}.
+              </dd>
+              <dt>
+                <dfn>remoteAddress</dfn> member
+              </dt>
+              <dd>
+                The remote address where the message came from / where the message should be sent.
+                Currently has no effect on {{UDPSocket/writable}} and is always equal to {{UDPSocket/remoteAddress}} on {{UDPSocket/readable}}.
+              </dd>
+              <dt>
+                <dfn>remotePort</dfn> member
+              </dt>
+              <dd>
+                The remote port where the message came from / where the message should be sent.
+                Currently has no effect on {{UDPSocket/writable}} and is always equal to {{UDPSocket/remotePort}} on {{UDPSocket/readable}}.
+              </dd>
+            </dl>
+          </section>
         </section>
       </section>
       <section id="conformance"></section>

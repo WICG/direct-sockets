@@ -81,11 +81,7 @@ A web app might initiate connections without the user realizing.
 
 #### Mitigation
 
-When initiating a connection, the user agent would show some UI.
-
-The user can be asked to specify a hostname or IP address, with an option to permit future connections to this host.
-
-![Example consent dialog](mocks/consent_dialog.png)
+The api will only be available in high-trust mode.
 
 
 
@@ -168,10 +164,13 @@ If a user agent provides an option to permit future connections from an origin t
 
 A user agent should not record permitted destinations if the API is used in Private Browsing modes.
 
-
 ## TCP
 
-Applications will be able to request a TCP socket using a method on `navigator`:
+To simplify security analysis, an API for listening for incoming connections is not yet being proposed.
+
+### Opening/Closing the socket
+
+Applications will be able to request a TCP socket using a method on `navigator`.
 
 ```javascript
 const options = {
@@ -181,23 +180,55 @@ const options = {
     keepAlive: true,
     keepAliveDelay: 720_000
 };
-navigator.openTCPSocket(options).then(tcpSocket => { ... }).else(error => { ... });
-```
 
-The `remoteAddress` member may be omitted or ignored - the user agent may invite the user to specify the address.
+let tcpSocket = await navigator.openTCPSocket(options).catch(err => console.log(err));
+if (!tcpSocket) {
+  return;
+}
 
-There is currently no provision for setting the local address or port.
-
-The TCP socket can be used for reading and writing:
-
-```
-let readableStream = tcpSocket.readable;
-let writableStream = tcpSocket.writable;
+// do stuff with the socket
 ...
+
+// close the socket
 tcpSocket.close();
 ```
 
-To simplify security analysis, an API for listening for incoming connections is not yet being proposed.
+There is currently no provision for setting the local address or port.
+
+### IO operations
+
+The TCP socket can be used for reading and writing. Both streams operate on the [`BufferSource`](https://developer.mozilla.org/en-US/docs/Web/API/BufferSource) object.
+
+#### Reading
+```javascript
+const decoder = new TextDecoder();
+
+let readableStream = tcpSocket.readable;
+let reader = readableStream.getReader();
+
+let { value, done } = await reader.read();
+if (done) {
+  // stream is exhausted...
+  return;
+}
+
+let message = decoder.decode(value);
+...
+```
+
+#### Writing
+
+```javascript
+const encoder = new TextEncoder();
+
+let writableStream = tcpSocket.writable;
+let writer = writableStream.getWriter();
+
+let message = "Some user-created tcp data";
+
+await writer.write(encoder.encode(message)).catch(err => console.log(err));
+...
+```
 
 ## UDP
 
@@ -205,40 +236,76 @@ To simplify security analysis, the initial proposal only supports cases where th
 
 Received packets will only be routed if they came from the remote address and port used when opening the socket. Other packets will be dropped silently.
 
+### Opening/Closing the socket
 
-```
+```javascript
 const options = {
     remoteAddress: 'example.com',
     remotePort: 7
 };
 
-try {
-  const udpSocket = await navigator.openUDPSocket(options);
-  doStuffWith(udpSocket);
-  ...
-} catch (err) {
-  // handle error
-} finally {
-  udpSocket.close();
+const udpSocket = await navigator.openUDPSocket(options).catch(err => console.log(err));
+if (!udpSocket) {
+  return;
 }
-```
 
-The `remoteAddress` member may be omitted or ignored - the user agent may invite the user to specify the address.
+// do stuff with the socket
+...
+
+// close the socket
+udpSocket.close();
+```
 
 There is currently no provision for setting the local address or port.
 
-`send` returns a promise, that resolves if the message is sent, and rejects otherwise.
+### IO operations
 
-```
-let blob = ...;
-await udpSocket.send(blob);
+The UDP socket can be used for reading and writing. Both streams operate on the `UDPMessage` object which is defined as follows (idl):
+```javascript
+dictionary UDPMessage {
+  ArrayBuffer    data;
+  DOMString      remoteAddress;
+  unsigned short remotePort;
+};
 ```
 
-The UDP socket is `async iterable`, so we can asynchronously iterate to read incoming messages:
+#### Reading
 
+```javascript
+const decoder = new TextDecoder();
+
+let readableStream = udpSocket.readable;
+let reader = readableStream.getReader();
+
+// It's advised against using nested unpacking here -- value might be undefined.
+let { value, done } = await reader.read();
+if (done) {
+  // stream is exhausted...
+  // happens either on socket errors or explicit socket.close();
+  return;
+} 
+
+// value is a UDPMessage object.
+let { data, remoteAddress, remotePort } = value;
+let message = decoder.decode(data);
+...
 ```
-for await (let [source, blob] of udpSocket) {
-  console.log('Received ' + blob.size + ' bytes from ' + source.remoteAddress);
-}
+
+#### Writing
+
+```javascript
+const encoder = new TextEncoder();
+
+let writableStream = udpSocket.writable;
+let writer = writableStream.getWriter();
+
+let message = "Some user-created datagram";
+
+// sends a UDPMessage object.
+await writer.write({
+    data: encoder.encode(message).buffer
+}).catch(err => console.log(err));
+...
 ```
+Note the `encode(...).buffer` part: the `encode(...)` method returns a [`Uint8Array`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array) that cannot be implicitly converted to [`ArrayBuffer`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer).
 
