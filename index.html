@@ -205,7 +205,7 @@
             more information about streams.
           </div>
           <div class="note">
-            {{TCPSocket/readable}} and {{TCPSocket/writable}} operate on the {{BufferSource}} object.
+            {{TCPSocket/writable}} accepts {{BufferSource}}. {{TCPSocket/readable}} returns {{Uint8Array}}.
           </div>
         </section>
         <section data-dfn-for="UDPSocket">
@@ -238,7 +238,7 @@
             </h3>
             <pre class="idl">
             dictionary UDPMessage {
-              ArrayBuffer    data;
+              BufferSource data;
               DOMString      remoteAddress;
               unsigned short remotePort;
             };
@@ -248,7 +248,8 @@
                 <dfn>data</dfn> member
               </dt>
               <dd>
-                The user message represented as an {{ArrayBuffer}}.
+                The user message represented as {{BufferSource}}.
+                Note that for {{UDPSocket/readable}} the underlying type is always {{Uint8Array}}.
               </dd>
               <dt>
                 <dfn>remoteAddress</dfn> member

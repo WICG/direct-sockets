@@ -197,9 +197,14 @@ There is currently no provision for setting the local address or port.
 
 ### IO operations
 
-The TCP socket can be used for reading and writing. Both streams operate on the [`BufferSource`](https://developer.mozilla.org/en-US/docs/Web/API/BufferSource) object.
+The TCP socket can be used for reading and writing. 
+- Writable stream accepts [`BufferSource`](https://developer.mozilla.org/en-US/docs/Web/API/BufferSource)
+- Readable stream returns [`Uint8Array`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array)
 
 #### Reading
+
+See [`ReadableStream`](https://streams.spec.whatwg.org/#rs-intro) spec for more examples.
+
 ```javascript
 const decoder = new TextDecoder();
 
@@ -218,6 +223,8 @@ let message = decoder.decode(value);
 
 #### Writing
 
+See [`WritableStream`](https://streams.spec.whatwg.org/#ws-intro) spec for more examples.
+
 ```javascript
 const encoder = new TextEncoder();
 
@@ -226,7 +233,10 @@ let writer = writableStream.getWriter();
 
 let message = "Some user-created tcp data";
 
-await writer.write(encoder.encode(message)).catch(err => console.log(err));
+await writer.ready;
+writer.write(
+  encoder.encode(message)
+).catch(err => console.log(err));
 ...
 ```
 
@@ -263,13 +273,17 @@ There is currently no provision for setting the local address or port.
 The UDP socket can be used for reading and writing. Both streams operate on the `UDPMessage` object which is defined as follows (idl):
 ```javascript
 dictionary UDPMessage {
-  ArrayBuffer    data;
+  BufferSource   data;
   DOMString      remoteAddress;
   unsigned short remotePort;
 };
 ```
+- Writable stream accepts `data` as [`BufferSource`](https://developer.mozilla.org/en-US/docs/Web/API/BufferSource)
+- Readable stream returns `data` as [`Uint8Array`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array)
 
 #### Reading
+
+See [`ReadableStream`](https://streams.spec.whatwg.org/#rs-intro) spec for more examples.
 
 ```javascript
 const decoder = new TextDecoder();
@@ -293,6 +307,8 @@ let message = decoder.decode(data);
 
 #### Writing
 
+See [`WritableStream`](https://streams.spec.whatwg.org/#ws-intro) spec for more examples.
+
 ```javascript
 const encoder = new TextEncoder();
 
@@ -301,11 +317,16 @@ let writer = writableStream.getWriter();
 
 let message = "Some user-created datagram";
 
-// sends a UDPMessage object.
-await writer.write({
+// sends a UDPMessage object with data = Uint8Array
+await writer.ready;
+writer.write({
+    data: encoder.encode(message)
+}).catch(err => console.log(err));
+
+// or, alternatively, with data = ArrayBuffer
+await writer.ready;
+writer.write({
     data: encoder.encode(message).buffer
 }).catch(err => console.log(err));
 ...
 ```
-Note the `encode(...).buffer` part: the `encode(...)` method returns a [`Uint8Array`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array) that cannot be implicitly converted to [`ArrayBuffer`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer).
-
