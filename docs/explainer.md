@@ -56,7 +56,7 @@ This specification defines a policy-controlled permission identified by the stri
 Permissions-Policy: direct-sockets=(self)
 ```
 
-This [`Permissions-Policy`](https://chromestatus.com/feature/5745992911552512) header determines whether a `navigator.openTCPSocket({...})` or `navigator.openUDPSocket({...})` call immediately rejects with a `NotAllowedError` `DOMException`.
+This [`Permissions-Policy`](https://chromestatus.com/feature/5745992911552512) header determines whether a `new TCPSocket(...)` or `new UDPSocket(...)` call immediately rejects with a `NotAllowedError` `DOMException`.
 
 ## Security Considerations
 
@@ -168,28 +168,45 @@ A user agent should not record permitted destinations if the API is used in Priv
 
 To simplify security analysis, an API for listening for incoming connections is not yet being proposed.
 
+### IDL Definitions
+```javascript
+interface TCPSocket {
+  constructor(DOMString remoteAddress, unsigned short remotePort, optional TCPSocketOptions options = {});
+
+  readonly attribute Promise<TCPSocketConnection> connection;
+  readonly attribute Promise<void> closed;
+
+  Promise<void> close();
+};
+```
+
 ### Opening/Closing the socket
 
-Applications will be able to request a TCP socket using a method on `navigator`.
+Applications will be able to request a TCP socket by creating a `TCPSocket` class using the `new` operator and then waiting for the connection to be established.
 
 ```javascript
+const remoteAddress = 'example.com';
+const remotePort = 7;
+
 const options = {
-    remoteAddress: 'example.com',
-    remotePort: 7,
     noDelay: false,
     keepAlive: true,
     keepAliveDelay: 720_000
 };
 
-let tcpSocket = await navigator.openTCPSocket(options).catch(err => console.log(err));
+let tcpSocket = new TCPSocket(remoteAddress, remotePort, options);
+// If rejected by permissions-policy...
 if (!tcpSocket) {
   return;
 }
 
+// Wait for the connection to be established...
+let { readable, writable } = await tcpSocket.connection;
+
 // do stuff with the socket
 ...
 
-// close the socket
+// Close the socket. Note that this operation will succeeed if and only if neither readable not writable streams are locked.
 tcpSocket.close();
 ```
 
@@ -206,10 +223,10 @@ The TCP socket can be used for reading and writing.
 See [`ReadableStream`](https://streams.spec.whatwg.org/#rs-intro) spec for more examples.
 
 ```javascript
-const decoder = new TextDecoder();
+let tcpSocket = new TCPSocket(...);
 
-let readableStream = tcpSocket.readable;
-let reader = readableStream.getReader();
+let { readable } = await tcpSocket.connection;
+let reader = readable.getReader();
 
 let { value, done } = await reader.read();
 if (done) {
@@ -217,8 +234,11 @@ if (done) {
   return;
 }
 
+const decoder = new TextDecoder();
 let message = decoder.decode(value);
 ...
+
+// Don't forget to call releaseLock() or cancel() on the reader once done.
 ```
 
 #### Writing
@@ -226,11 +246,12 @@ let message = decoder.decode(value);
 See [`WritableStream`](https://streams.spec.whatwg.org/#ws-intro) spec for more examples.
 
 ```javascript
+let tcpSocket = new TCPSocket(...);
+
+let { writable } = await tcpSocket.connection;
+let writer = writable.getWriter();
+
 const encoder = new TextEncoder();
-
-let writableStream = tcpSocket.writable;
-let writer = writableStream.getWriter();
-
 let message = "Some user-created tcp data";
 
 await writer.ready;
@@ -238,6 +259,8 @@ writer.write(
   encoder.encode(message)
 ).catch(err => console.log(err));
 ...
+
+// Don't forget to call releaseLock() or cancel()/abort() on the writer once done.
 ```
 
 ## UDP
@@ -246,23 +269,39 @@ To simplify security analysis, the initial proposal only supports cases where th
 
 Received packets will only be routed if they came from the remote address and port used when opening the socket. Other packets will be dropped silently.
 
+### IDL Definitions
+```javascript
+interface UDPSocket {
+  constructor(DOMString address, unsigned short port, optional UDPSocketOptions options = {});
+
+  readonly attribute Promise<UDPSocketConnection> connection;
+  readonly attribute Promise<void> closed;
+
+  Promise<void> close();
+};
+```
+
 ### Opening/Closing the socket
 
-```javascript
-const options = {
-    remoteAddress: 'example.com',
-    remotePort: 7
-};
+Applications will be able to request a TCP socket by creating a `UDPSocket` class using the `new` operator and then waiting for the connection to be established.
 
-const udpSocket = await navigator.openUDPSocket(options).catch(err => console.log(err));
+```javascript
+const remoteAddress = 'example.com';
+const remotePort = 7;
+
+let udpSocket = new UDPSocket(remoteAddress, remotePort);
+// If rejected by permissions-policy...
 if (!udpSocket) {
   return;
 }
 
+// Wait for the connection to be established...
+let { readable, writable } = await udpSocket.connection;
+
 // do stuff with the socket
 ...
 
-// close the socket
+// Close the socket. Note that this operation will succeeed if and only if neither readable not writable streams are locked.
 udpSocket.close();
 ```
 
@@ -286,12 +325,11 @@ dictionary UDPMessage {
 See [`ReadableStream`](https://streams.spec.whatwg.org/#rs-intro) spec for more examples.
 
 ```javascript
-const decoder = new TextDecoder();
+let udpSocket = new UDPSocket(...);
+let { readable } = await udpSocket.connection;
 
-let readableStream = udpSocket.readable;
-let reader = readableStream.getReader();
+let reader = readable.getReader();
 
-// It's advised against using nested unpacking here -- value might be undefined.
 let { value, done } = await reader.read();
 if (done) {
   // stream is exhausted...
@@ -299,10 +337,14 @@ if (done) {
   return;
 } 
 
+const decoder = new TextDecoder();
+
 // value is a UDPMessage object.
 let { data, remoteAddress, remotePort } = value;
 let message = decoder.decode(data);
 ...
+
+// Don't forget to call releaseLock() or cancel() on the reader once done.
 ```
 
 #### Writing
@@ -310,11 +352,12 @@ let message = decoder.decode(data);
 See [`WritableStream`](https://streams.spec.whatwg.org/#ws-intro) spec for more examples.
 
 ```javascript
+let udpSocket = new UDPSocket(...);
+let { writable } = await udpSocket.connection;
+
+let writer = writable.getWriter();
+
 const encoder = new TextEncoder();
-
-let writableStream = udpSocket.writable;
-let writer = writableStream.getWriter();
-
 let message = "Some user-created datagram";
 
 // sends a UDPMessage object with data = Uint8Array
@@ -329,4 +372,6 @@ writer.write({
     data: encoder.encode(message).buffer
 }).catch(err => console.log(err));
 ...
+
+// Don't forget to call releaseLock() or cancel()/abort() on the writer once done.
 ```
