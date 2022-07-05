@@ -21,8 +21,14 @@
           company: "Google Inc.",
           companyURL: "https://google.com",
           w3cid: 67534
+        },
+        {
+          name: "Andrew Rayskiy",
+          company: "Google Inc.",
+          companyURL: "https://google.com",
+          w3cid: 135463
         }],
-        xref: "web-platform",
+        xref: ["web-platform", "STREAMS", "PERMISSIONS-POLICY", "HTML"],
         // eventually add mdn: true, and caniuse: "direct-sockets"
       };
     </script>
@@ -35,37 +41,445 @@
         those available on the web.
       </p>
     </section>
+
+    <section id='sotd'>
+      This is a work in progress. All <a
+      href="https://github.com/WICG/direct-sockets">contributions</a> welcome.
+    </section>
+
+    <section data-dfn-for="TCPSocket">
+      <h2>
+        {{TCPSocket}} interface
+      </h2>
+
+      <pre class="idl">
+        [Exposed=(Window,Worker), SecureContext]
+        interface TCPSocket {
+          constructor(DOMString remoteAddress, unsigned short remotePort,
+              optional TCPSocketOptions options = {});
+
+          readonly attribute Promise&lt;TCPSocketConnection> connection;
+          readonly attribute Promise&lt;undefined> closed;
+
+          Promise&lt;undefined> close();
+        };
+      </pre>
+
+      <p>
+      Instances of {{TCPSocket}} are created with the internal slots described in the following table:
+
+      <table class="simple" data-dfn-for="TCPSocket">
+        <tr>
+          <th>Internal slot
+          <th>Initial value
+          <th>Description (non-normative)
+        <tr>
+          <td><dfn>[[\connectionPromise]]</dfn>
+          <td>`null`
+          <td>A {{Promise}} used to wait for the connection to be established. Corresponds to the {{TCPSocket/connection}} member.
+        <tr>
+          <td><dfn>[[\readable]]</dfn>
+          <td>`null`
+          <td>A {{ReadableStream}} that receives data from the socket 
+        <tr>
+          <td><dfn>[[\writable]]</dfn>
+          <td>`null`
+          <td>A {{WritableStream}} that transmits data to the socket
+        <tr>
+          <td><dfn>[[\closedPromise]]
+          <td>`null`
+          <td>A {{Promise}} used to wait for the socket to close or error. Corresponds to the {{TCPSocket/closed}} member.
+      </table>
+
+      <section>
+        <h3><dfn>constructor()</dfn> method</h3>
+
+        The {{TCPSocket/constructor()}} steps are:
+
+        <ol>
+          <li>If [=this=]'s [=relevant global object=]'s [=associated Document=] is
+        not [=allowed to use=] the [=policy-controlled feature=] named "[=policy-controlled feature/direct-sockets=]", throw a
+        "{{NotAllowedError}}" {{DOMException}} and return `null`.</li>
+          <li>If only one of |options|["{{TCPSocketOptions/localAddress}}"] or |options|["{{TCPSocketOptions/localPort}}"] is specified, throw a {{TypeError}}  and return `null`.</li>
+          <li>If |options|["{{TCPSocketOptions/keepAlive}}"] is specified and |options|["{{TCPSocketOptions/keepAliveDelay}}"] is not, throw a {{TypeError}}  and return `null`.</li>
+          <li>If |options|["{{TCPSocketOptions/keepAlive}}"] is not specified and |options|["{{TCPSocketOptions/keepAliveDelay}}"] is, throw a {{TypeError}}  and return `null`.</li>
+          <li>If |options|["{{TCPSocketOptions/keepAliveDelay}}"] is less than one second, throw a {{TypeError}}  and return `null`.</li>
+          <li>Perform the following steps [=in parallel=].
+            <ol>
+              <li>
+                Invoke the operating system to open the socket using the
+                connection parameters (or their defaults) specified in |options|.
+              <li>
+                If this fails for any reason, [=reject=] the {{TCPSocket/[[connectionPromise]]}} with a "{{NetworkError}}"
+                {{DOMException}}, detach {{TCPSocket/[[closedPromise]]}} and abort these steps.
+              <li>
+                On success initialize {{TCPSocket/[[readable]]}}, {{TCPSocket/[[writable]]}} and resolve {{TCPSocket/[[connectionPromise]]}}.
+            </ol>
+          <li>Return [=this=].
+        </ol>
+
+        <section data-dfn-for="TCPSocketOptions">
+          <h4><dfn>TCPSocketOptions</dfn> dictionary</h4>
+
+          <pre class="idl">
+            dictionary TCPSocketOptions {
+              unsigned long sendBufferSize;
+              unsigned long receiveBufferSize;
+
+              DOMString localAddress;
+              unsigned short localPort;
+
+              boolean noDelay;
+              boolean keepAlive;
+              [EnforceRange] unsigned long keepAliveDelay;
+            };
+          </pre>
+
+          <dl>
+            <dt>
+              <dfn>sendBufferSize</dfn> member
+            </dt>
+            <dd>
+              The requested send buffer size, in bytes.
+            </dd>
+            <dt>
+              <dfn>receiveBufferSize</dfn> member
+            </dt>
+            <dd>
+              The requested receive buffer size, in bytes.
+            </dd>
+            <dt>
+              <dfn>localAddress</dfn> member
+            </dt>
+            <dd>
+              <!--The IP address (or hostname) on the local host that the socket
+              should be bound to.-->
+            </dd>
+            <dt>
+              <dfn>localPort</dfn> member
+            </dt>
+            <dd>
+              <!--The port that the socket should be bound to. When omitted, or 0,
+              any port can be used.-->
+            </dd>
+            <dt>
+              <dfn>noDelay</dfn> member
+            </dt>
+            <dd>
+              Enables the `TCP_NODELAY` option,
+              disabling <a href=
+              "https://en.wikipedia.org/wiki/Nagle%27s_algorithm">Nagle's
+              algorithm</a>.
+            </dd>
+            <dt>
+              <dfn>keepAlive</dfn> member
+            </dt>
+            <dd>
+              Enables/disables TCP Keep-Alive by setting `SO_KEEPALIVE` option on the socket. 
+            </dd>
+            <dt>
+              <dfn>keepAliveDelay</dfn> member
+            </dt>
+            <dd>
+              Specifies the Keep-Alive ping delay in milliseconds. Must be specified only if
+              {{TCPSocketOptions/keepAlive}} is set to `true`.
+            </dd>
+          </dl>
+        </section>
+
+      </section>
+
+      <section>
+        <h3>{{TCPSocket/[[readable]]}} attribute (internal)</h3>
+      
+        The {{TCPSocket/[[readable]]}} creation steps are:
+
+        <ol>
+          <li>Let |stream| be a [=new=] {{ReadableStream}}.
+          <li>
+            Let |pullAlgorithm| be the following steps: 
+          <li>
+            Let |cancelAlgorithm| be the following steps:
+          <li>
+            [=ReadableStream/Set up=] |stream| with
+            <a href="https://streams.spec.whatwg.org/#readablestream-set-up-pullalgorithm">pullAlgorithm</a>
+            set to |pullAlgorithm|,
+            <a href="https://streams.spec.whatwg.org/#readablestream-set-up-cancelalgorithm">cancelAlgorithm</a>
+            set to |cancelAlgorithm|,
+            <a href="https://streams.spec.whatwg.org/#readablestream-set-up-highwatermark">highWaterMark</a>
+            set to 0.
+          <li>Set [=this=].{{TCPSocket/[[readable]]}} to |stream|.
+        </ol>
+      </section>
+
+      <section>
+        <h3>{{TCPSocket/[[writable]]}} attribute (internal)</h3>
+      </section>
+
+      <section>
+        <h3><dfn>connection</dfn> attribute</h3>
+
+        The {{TCPSocket/connection}} is an attribute containing all information about the socket connection.
+        
+        When called, returns the {{TCPSocket/[[connectionPromise]]}}.
+
+        <section data-dfn-for="TCPSocketConnection">
+          <h4><dfn>TCPSocketConnection</dfn> dictionary</h4>
+
+          <pre class="idl">
+            dictionary TCPSocketConnection {
+              ReadableStream readable;
+              WritableStream writable;
+
+              DOMString remoteAddress;
+              unsigned short remotePort;
+
+              DOMString localAddress;
+              unsigned short localPort;
+            };
+          </pre>
+
+          <dl>
+            <dt>
+              <dfn>readable</dfn> member
+            </dt>
+            <dd>
+            </dd>
+            <dt>
+              <dfn>writable</dfn> member
+            </dt>
+            <dd>
+            </dd>
+            <dt>
+              <dfn>remoteAddress</dfn> member
+            </dt>
+            <dd>
+            </dd>
+            <dt>
+              <dfn>remotePort</dfn> member
+            </dt>
+            <dd>
+            </dd>
+            <dt>
+              <dfn>localAddress</dfn> member
+            </dt>
+            <dd>
+            </dd>
+            <dt>
+              <dfn>localPort</dfn> member
+            </dt>
+            <dd>
+            </dd>
+          </dl>
+        </section>
+      </section>
+      <section>
+        <h3><dfn>closed</dfn> attribute</h3>
+
+        The {{TCPSocket/closed}} is an attribute that keeps track of the socket state.
+        It gets resolved if the socket is closed gracefully (i.e. by the user) or rejected in case of an error.
+        
+        When called, returns the {{TCPSocket/[[closedPromise]]}}.
+      </section>
+      <section>
+        <h3><dfn>close()</dfn> method</h3>
+
+        The {{TCPSocket/close()}} method steps are:
+
+        <ol>
+          <li>
+            If [=this=].{{TCPSocket/[[connectionPromise]]}} is rejected or not yet resolved, reject with
+            "{{InvalidStateError}}" {{DOMException}}.
+          <li>
+            If [=this=].{{TCPSocket/[[closedPromise]]}} is already resolved, return [=this=].{{TCPSocket/[[closedPromise]]}}.
+          <li>
+            Let |cancelPromise:Promise| be the result of invoking
+            [=ReadableStream/cancel=] on [=this=].{{TCPSocket/[[readable]]}}.
+          <li>
+            Mark |cancelPromise| as handled.
+          <li>
+            Let |abortPromise:Promise| be the result of invoking
+            [=WritableStream/abort=] on [=this=].{{TCPSocket/[[writable]]}}.
+          <li>
+            Mark |abortPromise| as handled.
+          <li>
+            [=Resolve=] [=this=].{{TCPSocket/[[closedPromise]]}} with `undefined`.
+          <li>Return [=this=].{{TCPSocket/closed}}.
+        </ol>
+      </section>
+    </section>
+
+    <section data-dfn-for="UDPSocket">
+      <h2>
+        {{UDPSocket}} interface
+      </h2>
+
+      <pre class="idl">
+        [Exposed=(Window,Worker), SecureContext]
+        interface UDPSocket {
+          constructor(DOMString remoteAddress, unsigned short remotePort,
+              optional UDPSocketOptions options = {});
+
+          readonly attribute Promise&lt;UDPSocketConnection> connection;
+          readonly attribute Promise&lt;undefined> closed;
+
+          Promise&lt;undefined> close();
+        };
+      </pre>
+
+      <p>
+      Instances of {{UDPSocket}} are created with the internal slots described in the following table:
+
+      <table class="simple" data-dfn-for="SerialPort">
+        <tr>
+          <th>Internal slot
+          <th>Initial value
+          <th>Description (non-normative)
+        <tr>
+          <td><dfn>[[\connectionPromise]]</dfn>
+          <td>`null`
+          <td>A {{Promise}} used to wait for the connection to be established. Corresponds to the {{UDPSocket/connection}} member.
+        <tr>
+          <td><dfn>[[\readable]]</dfn>
+          <td>`null`
+          <td>A {{ReadableStream}} that receives data from the socket 
+        <tr>
+          <td><dfn>[[\writable]]</dfn>
+          <td>`null`
+          <td>A {{WritableStream}} that transmits data to the socket
+        <tr>
+          <td><dfn>[[\closedPromise]]
+          <td>`null`
+          <td>A {{Promise}} used to wait for the socket to close or error. Corresponds to the {{UDPSocket/closed}} member.
+      </table>
+
+
+      <section>
+        <h3><dfn>constructor()</dfn> method</h3>
+
+
+
+        The {{UDPSocket/constructor()}} steps are:
+
+        <ol>
+          <li>Meow</li>
+          <li>Meow</li>
+        </ol>
+
+        <section data-dfn-for="UDPSocketOptions">
+          <h4><dfn>UDPSocketOptions</dfn> dictionary</h4>
+
+          <pre class="idl">
+            dictionary UDPSocketOptions {
+              unsigned long sendBufferSize;
+              unsigned long receiveBufferSize;
+
+              [EnforceRange] unsigned short readableStreamBufferSize;
+            };
+          </pre>
+
+          <dl>
+            <dt>
+              <dfn>sendBufferSize</dfn> member
+            </dt>
+            <dd>
+              The requested send buffer size, in bytes.
+            </dd>
+            <dt>
+              <dfn>receiveBufferSize</dfn> member
+            </dt>
+            <dd>
+              The requested receive buffer size, in bytes.
+            </dd>
+            <dt>
+              <dfn>readableStreamBufferSize</dfn> member
+            </dt>
+            <dd>
+              <!--The IP address (or hostname) on the local host that the socket
+              should be bound to.-->
+            </dd>
+          </dl>
+        </section>
+
+      </section>
+
+      <section>
+        <h3><dfn>connection</dfn> attribute</h3>
+
+        The {{UDPSocket/connection}} steps are:
+
+        <ol>
+          <li>Meow</li>
+          <li>Meow</li>
+        </ol>
+
+        <section data-dfn-for="UDPSocketConnection">
+          <h4><dfn>UDPSocketConnection</dfn> dictionary</h4>
+
+          <pre class="idl">
+            dictionary UDPSocketConnection {
+              ReadableStream readable;
+              WritableStream writable;
+
+              DOMString remoteAddress;
+              unsigned short remotePort;
+
+              DOMString localAddress;
+              unsigned short localPort;
+            };
+          </pre>
+
+          <dl>
+            <dt>
+              <dfn>readable</dfn> member
+            </dt>
+            <dd>
+            </dd>
+            <dt>
+              <dfn>writable</dfn> member
+            </dt>
+            <dd>
+            </dd>
+            <dt>
+              <dfn>remoteAddress</dfn> member
+            </dt>
+            <dd>
+            </dd>
+            <dt>
+              <dfn>remotePort</dfn> member
+            </dt>
+            <dd>
+            </dd>
+            <dt>
+              <dfn>localAddress</dfn> member
+            </dt>
+            <dd>
+            </dd>
+            <dt>
+              <dfn>localPort</dfn> member
+            </dt>
+            <dd>
+            </dd>
+          </dl>
+        </section>
+      </section>
+      <section>
+        <h3><dfn>closed</dfn> attribute</h3>
+      </section>
+      <section>
+        <h3><dfn>close()</dfn> method</h3>
+      </section>
+    </section>
+
+
+
+    <!--
     <section>
       <h2>
         API definition
       </h2>
-      <section data-dfn-for="Navigator">
-        <h3>
-          Extensions to the `Navigator` interface
-        </h3>
-        <pre class="idl">
-          partial interface Navigator {
-            [SecureContext] Promise&lt;TCPSocket&gt; openTCPSocket(optional TCPSocketOptions options = {});
-            [SecureContext] Promise&lt;UDPSocket&gt; openUDPSocket(optional UDPSocketOptions options = {});
-          };
-        </pre>
-        <p>
-          {{Navigator/openTCPSocket}} is used to open a client TCP socket.
-        </p>
-        <p>
-          {{Navigator/openUDPSocket}} is used to open a 'client' UDP socket,
-          that only exchanges datagrams with a specific remote address and
-          port.
-        </p>
-        <p class="note">
-          The API currently provides no support for server sockets, that can
-          receive packets from arbitrary remote addresses and ports.
-        </p>
-        <p>
-          User agents that do not support direct sockets SHOULD NOT expose
-          {{Navigator/openTCPSocket()}} or {{Navigator/openUDPSocket()}} on the
-          {{Navigator}} interface.
-        </p>
+      <section>
+
         <section data-dfn-for="SocketOptions">
           <h3>
             `SocketOptions` dictionary
@@ -184,7 +598,7 @@
             from {{SocketOptions}}.
           </p>
         </section>
-        <section data-dfn-for="TCPSocket">
+        <section data-dfn-for="TCPSocket2">
           <h3>
             `TCPSocket` interface
           </h3>
@@ -269,15 +683,30 @@
           </section>
         </section>
       </section>
-      <section id="conformance"></section>
-      <section id="idl-index"></section>
-      <section class="informative" data-cite="accessibility">
-        <h2>
-          Accessibility
-        </h2>
-        <p>
-          This specification has no known accessibility considerations.
-        </p>
+    -->
+      <section id="integrations">
+        <h2>Integrations</h2>
+
+        <section id="permissions-policy">
+          <h3>Permissions Policy</h3>
+
+          <p>
+          This specification defines a feature that controls whether {{TCPSocket}} and {{UDPSocket}} classes may be created.
+
+          <p>
+          The feature name for this feature is "<dfn data-dfn-for="policy-controlled feature"><code>direct-sockets</code></dfn>"`.
+
+          <p>
+          The [=default allowlist=] for this feature is `'self'`.
+
+          <div class="note">
+          <p>
+            A document’s permission policy determines whether a
+            `new TCPSocket(...)` or `new UDPSocket(...)` call rejects with a
+            {{"NotAllowedError"}} {{DOMException}}.
+          </p>
+        </div>
+        </section>
       </section>
       <section class="informative" data-cite="security">
         <h2>
@@ -290,23 +719,28 @@
           </li>
         </ul>
       </section>
+      <section id="idl-index"></section>
+      <section id="conformance"></section>
+      <!--
       <section id="permissions-policy" data-cite="permissions-policy">
-      <h2>
-        Permissions Policy integration
-      </h2>
-      <p>
-        This specification defines a policy-controlled permission identified by
-        the string <code><dfn class="permission">"direct-sockets"</dfn></code>. Its
-        <a>default allowlist</a> is '`self`'.
-      </p>
-      <div class="note">
+        <h2>
+          Permissions Policy integration
+        </h2>
         <p>
-          A <a>document</a>’s permission policy determines whether a
-          {{Navigator/openTCPSocket(...)}} or {{Navigator/openUDPSocket(...)}} call immediately rejects with a
-          {{"NotAllowedError"}} {{DOMException}}.
+          This specification defines a policy-controlled permission identified by
+          the string <code><dfn class="permission">"direct-sockets"</dfn></code>. Its
+          <a>default allowlist</a> is '`self`'.
         </p>
-      </div>
-    </section>
+        <div class="note">
+          <p>
+            A <a>document</a>’s permission policy determines whether a
+            {{Navigator/openTCPSocket(...)}} or {{Navigator/openUDPSocket(...)}} call immediately rejects with a
+            {{"NotAllowedError"}} {{DOMException}}.
+          </p>
+        </div>
+      </section>
+    -->
     </section>
   </body>
+
 </html>
