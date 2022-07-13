@@ -55,8 +55,9 @@
       <pre class="idl">
         [Exposed=(Window,Worker), SecureContext]
         interface TCPSocket {
-          constructor(DOMString remoteAddress, unsigned short remotePort,
-              optional TCPSocketOptions options = {});
+          constructor(DOMString remoteAddress,
+                      unsigned short remotePort,
+                      optional TCPSocketOptions options = {});
 
           readonly attribute Promise&lt;TCPSocketConnection> connection;
           readonly attribute Promise&lt;undefined> closed;
@@ -86,11 +87,11 @@
           <td>A {{WritableStream}} that transmits data to the socket
         <tr>
           <td><dfn>[[\connectionPromise]]</dfn>
-          <td>`null`
+          <td>`new Promise`
           <td>A {{Promise}} used to wait for the connection to be established. Corresponds to the {{TCPSocket/connection}} member.
         <tr>
           <td><dfn>[[\closedPromise]]
-          <td>`null`
+          <td>`new Promise`
           <td>A {{Promise}} used to wait for the socket to close or error. Corresponds to the {{TCPSocket/closed}} member.
       </table>
 
@@ -105,7 +106,7 @@
             const socket = new TCPSocket(/*remoteAddress=*/, /*remotePort=*/, /*options=*/);
           </pre>
 
-          The developer should wait for the connection to be established before accessing the {{TCPSocket/connection}} attribute. 
+          The developer should wait for the {{TCPSocket/connection}} promise to be resolved to gain access to {{TCPSocketConnection/readable}} and {{TCPSocketConnection/writable}} streams.
 
           <pre class="js">
             const { readable, writable } = await socket.connection;
@@ -120,26 +121,31 @@
         <ol>
           <li>If [=this=]'s [=relevant global object=]'s [=associated Document=] is
         not [=allowed to use=] the [=policy-controlled feature=] named "[=policy-controlled feature/direct-sockets=]", throw a
-        "{{NotAllowedError}}" {{DOMException}} and return `null`.
-          <li>If only one of |options|["{{TCPSocketOptions/localAddress}}"] or |options|["{{TCPSocketOptions/localPort}}"] is specified, throw a {{TypeError}}  and return `null`.
-          <li>If |options|["{{TCPSocketOptions/keepAlive}}"] is specified and |options|["{{TCPSocketOptions/keepAliveDelay}}"] is not, throw a {{TypeError}}  and return `null`.
-          <li>If |options|["{{TCPSocketOptions/keepAlive}}"] is not specified and |options|["{{TCPSocketOptions/keepAliveDelay}}"] is, throw a {{TypeError}}  and return `null`.
-          <li>If |options|["{{TCPSocketOptions/keepAliveDelay}}"] is less than 1,000, throw a {{TypeError}}  and return `null`.
-          <li>If |options|["{{TCPSocketOptions/sendBufferSize}}"] is equal to 0, throw a {{TypeError}}  and return `null`.
-          <li>If |options|["{{TCPSocketOptions/receiveBufferSize}}"] is equal to 0, throw a {{TypeError}}  and return `null`.
+        "{{NotAllowedError}}" {{DOMException}}.
+          <!--
+          <li>If only one of |options|["{{TCPSocketOptions/localAddress}}"] or |options|["{{TCPSocketOptions/localPort}}"] is specified, throw a {{TypeError}}.
+          -->
+          <li>If only one of |options|["{{TCPSocketOptions/keepAlive}}"] or |options|["{{TCPSocketOptions/keepAliveDelay}}"] is specified, throw a {{TypeError}}.
+          <li>If |options|["{{TCPSocketOptions/keepAliveDelay}}"] is less than one second, throw a {{TypeError}}.
+          <li>If |options|["{{TCPSocketOptions/sendBufferSize}}"] is equal to 0, throw a {{TypeError}}.
+          <li>If |options|["{{TCPSocketOptions/receiveBufferSize}}"] is equal to 0, throw a {{TypeError}}.
           <li>Perform the following steps [=in parallel=].
             <ol>
               <li>
                 Invoke the operating system to open the TCP socket using the given |remoteAddress| and |remotePort| and the 
                 connection parameters (or their defaults) specified in |options|.
               <li>
-                If this fails for any reason:
+                If this fails for any reason, [=queue a global task=] on the [=relevant global object=] of
+                [=this=] using the [=TCP socket task source=] to run the
+                following steps:
                 <ol>
                   <li>[=Reject=] the {{TCPSocket/[[connectionPromise]]}} with a "{{NetworkError}}" {{DOMException}}.
                   <li>Detach {{TCPSocket/[[closedPromise]]}}.
                 </ol>
               <li>
-                On success:
+                On success, [=queue a global task=] on the [=relevant global object=] of
+                [=this=] using the [=TCP socket task source=] to run the
+                following steps:
                 <ol>
                   <li>[=initialize tcp readable stream|Initialize=] {{TCPSocket/[[readable]]}}.
                   <li>[=initialize tcp writable stream|Initialize=] {{TCPSocket/[[writable]]}}.
@@ -152,7 +158,6 @@
                   <li>Resolve [=this=].{{TCPSocket/[[connectionPromise]]}} with |conn|.
                 </ol>
             </ol>
-          <li>Return [=this=].
         </ol>
 
         <section data-dfn-for="TCPSocketOptions">
@@ -160,15 +165,17 @@
 
           <pre class="idl">
             dictionary TCPSocketOptions {
-              unsigned long sendBufferSize;
-              unsigned long receiveBufferSize;
+              [EnforceRange] unsigned long sendBufferSize;
+              [EnforceRange] unsigned long receiveBufferSize;
 
+              <!--
               DOMString localAddress;
-              unsigned short localPort;
+              [EnforceRange] unsigned short localPort;
+              -->
 
               boolean noDelay;
               boolean keepAlive;
-              unsigned long keepAliveDelay;
+              [EnforceRange] unsigned long keepAliveDelay;
             };
           </pre>
 
@@ -185,6 +192,7 @@
             <dd>
               The requested receive buffer size, in bytes.
             </dd>
+            <!--
             <dt>
               <dfn>localAddress</dfn> member
             </dt>
@@ -203,6 +211,7 @@
               The only current implementation (Chromium) ignores
               {{TCPSocketOptions/localAddress}} and {{TCPSocketOptions/localPort}}.
             </div>
+            -->
             <dt>
               <dfn>noDelay</dfn> member
             </dt>
@@ -270,7 +279,7 @@
                 following steps:
                 <ol>
                   <li>
-                    If EOF packet was received, run the following steps:
+                    If FIN packet was received, run the following steps:
                     <ol>
                       <li>
                         Invoke [=ReadableStream/close=] on [=this=].{{TCPSocket/[[readable]]}}.
@@ -295,9 +304,11 @@
                     a "{{NetworkError}}" {{DOMException}} and invoke the steps
                     to [=handle closing the readable stream=].
                   <li>
-                    If |the socket was disconnected|, run the following steps:
+                    If the socket was disconnected, run the following steps:
                     <ol>
-                      <li>Reject [=this=].{{TCPSocket/[[closedPromise]]}}.
+                      <li>
+                        [=Reject=] [=this=].{{TCPSocket/[[closedPromise]]}}
+                        with a "{{NetworkError}}" {{DOMException}}.
                       <li>
                         Invoke [=ReadableStream/error=] on
                         [=this=].{{TCPSocket/[[readable]]}} with a "{{NetworkError}}"
@@ -309,7 +320,7 @@
                 </ol>
             </ol>
           <li>
-            Let |cancelAlgorithm| be the following steps (in parallel):
+            Let |cancelAlgorithm| be the following steps [=in parallel=]:
             <ol>
               <li>
                 Invoke the operating system to close the socket.
@@ -334,7 +345,8 @@
             If [=this=].{{TCPSocket/[[writable]]}} is errored:
             <ul>
               <li> 
-                [=Reject=] [=this=].{{TCPSocket/[[closedPromise]]}}.
+                [=Reject=] [=this=].{{TCPSocket/[[closedPromise]]}}
+                with a "{{NetworkError}}" {{DOMException}}.
             </ul>
           <li> 
             If [=this=].{{TCPSocket/[[writable]]}} is closed:
@@ -342,7 +354,8 @@
               <li>
                 If [=this=].{{TCPSocket/[[readable]]}} is closed, [=resolve=] [=this=].{{TCPSocket/[[closedPromise]]}} with `undefined`.
               <li>
-                If [=this=].{{TCPSocket/[[readable]]}} is errored, [=reject=] [=this=].{{TCPSocket/[[closedPromise]]}}.
+                If [=this=].{{TCPSocket/[[readable]]}} is errored, [=reject=] [=this=].{{TCPSocket/[[closedPromise]]}}
+                with a "{{NetworkError}}" {{DOMException}}.
             </ul>
         </ol>
 
@@ -391,49 +404,49 @@
                 |promise|. Otherwise, save the result of the conversion in
                 |source:BufferSource|.
               <li>
-                <li>
-                  [=In parallel=], run the following steps:
-                  <ol>
-                    <li>
-                      Invoke the operating system to write |bytes| to the socket.
+                [=In parallel=], run the following steps:
+                <ol>
+                  <li>
+                    Invoke the operating system to write |source| to the socket.
 
-                      <div class="note">
-                        The operating system may return from this operation once
-                        |bytes| has been queued for transmission rather than after it
-                        has been transmitted.
-                      </div>
-                    <li>
-                      [=Queue a global task=] on the [=relevant global object=] of
-                      [=this=] using the [=TCP socket task source=] to run the
-                      following steps:
-                      <ol>
-                        <li>
-                          If the chunk was successfully written, [=resolve=] |promise| with `undefined`.
+                    <div class="note">
+                      The operating system may return from this operation once
+                      |bytes| has been queued for transmission rather than after it
+                      has been transmitted.
+                    </div>
+                  <li>
+                    [=Queue a global task=] on the [=relevant global object=] of
+                    [=this=] using the [=TCP socket task source=] to run the
+                    following steps:
+                    <ol>
+                      <li>
+                        If the chunk was successfully written, [=resolve=] |promise| with `undefined`.
 
-                          <div class="note">
-                            [[STREAMS]] specifies that |writeAlgorithm| will only be
-                            invoked after the {{Promise}} returned by a previous
-                            invocation of this algorithm has resolved.
-                          </div>
-                        <li>
-                          If an operating system error was encountered, [=reject=]
-                          |promise| with an "{{NetworkError}}" {{DOMException}}.
-                        <li>
-                          If |the socket was disconnected|, run the following steps:
-                          <ol>
-                            <li>
-                              [=Reject=] |promise| with a "{{NetworkError}}"
-                              {{DOMException}}.
-                            <li>
-                              Invoke the steps to [=handle closing the writable
-                              stream=].
-                          </ol>
-                        <li>
-                          If |signal| is [=AbortSignal/aborted=], [=reject=] |promise|
-                          with |signal|'s [=AbortSignal/abort reason=].
-                      </ol>
+                        <div class="note">
+                          [[STREAMS]] specifies that |writeAlgorithm| will only be
+                          invoked after the {{Promise}} returned by a previous
+                          invocation of this algorithm has resolved.
+                        </div>
+                      <li>
+                        If an operating system error was encountered, [=reject=]
+                        |promise| with an "{{NetworkError}}" {{DOMException}}.
+                      <li>
+                        If the socket was disconnected, run the following steps:
+                        <ol>
+                          <li>
+                            [=Reject=] |promise| with a "{{NetworkError}}"
+                            {{DOMException}}.
+                          <li>
+                            Invoke the steps to [=handle closing the writable
+                            stream=].
+                        </ol>
+                      <li>
+                        If |signal| is [=AbortSignal/aborted=], [=reject=] |promise|
+                        with |signal|'s [=AbortSignal/abort reason=].
+                    </ol>
                   </ol>
-                <li>Return |promise|.
+                <li>
+                  Return |promise|.
             </ol>
           <li>
             Let |abortAlgorithm| be the following steps:
@@ -494,7 +507,8 @@
             If [=this=].{{TCPSocket/[[readable]]}} is errored:
             <ul>
               <li> 
-                [=Reject=] [=this=].{{TCPSocket/[[closedPromise]]}}.
+                [=Reject=] [=this=].{{TCPSocket/[[closedPromise]]}}
+                with a "{{NetworkError}}" {{DOMException}}.
             </ul>
           <li> 
             If [=this=].{{TCPSocket/[[readable]]}} is closed:
@@ -502,7 +516,8 @@
               <li>
                 If [=this=].{{TCPSocket/[[writable]]}} is closed, [=resolve=] [=this=].{{TCPSocket/[[closedPromise]]}} with `undefined`.
               <li>
-                If [=this=].{{TCPSocket/[[writable]]}} is errored, [=reject=] [=this=].{{TCPSocket/[[closedPromise]]}}.
+                If [=this=].{{TCPSocket/[[writable]]}} is errored, [=reject=] [=this=].{{TCPSocket/[[closedPromise]]}}
+                with a "{{NetworkError}}" {{DOMException}}.
             </ul>
         </ol>
 
@@ -574,7 +589,7 @@
               <dfn>localAddress</dfn> member
             </dt>
             <dd>
-              Local address that the socket is bound to.
+              Local IP address that the socket is bound to.
             </dd>
             <dt>
               <dfn>localPort</dfn> member
@@ -599,7 +614,7 @@
           </pre>
 
           Note that {{TCPSocket/closed}} will be automatically rejected or resolved once both
-          {{TCPSocket/[[readable]]}} and {{TCPSocket/[[writable]]}} reach an unreadable state.
+          {{TCPSocket/[[readable]]}} and {{TCPSocket/[[writable]]}} reach a closed or errored state.
         </aside>
        
         When called, returns the [=this=].{{TCPSocket/[[closedPromise]]}}.
@@ -675,7 +690,7 @@
             If [=this=].{{TCPSocket/[[connectionPromise]]}} is rejected or not yet resolved, [=reject=] with
             "{{InvalidStateError}}" {{DOMException}}.
           <li>
-            If [=this=].{{TCPSocket/[[closedPromise]]}} is already resolved, return [=this=].{{TCPSocket/[[closedPromise]]}}.
+            If [=this=].{{TCPSocket/[[closedPromise]]}} is settled, return [=this=].{{TCPSocket/[[closedPromise]]}}.
           <li>
             If [=this=].{{TCPSocket/[[readable]]}} or [=this=].{{TCPSocket/[[writable]]}} are <a href="https://streams.spec.whatwg.org/#lock">locked</a>,
             [=reject=] with "{{InvalidStateError}}" {{DOMException}}.
@@ -690,8 +705,7 @@
           <li>
             Mark |abortPromise| as handled.
           <li>
-            [=Resolve=] [=this=].{{TCPSocket/[[closedPromise]]}} with `undefined`.
-          <li>Return [=this=].{{TCPSocket/[[closedPromise]]}}.
+            Return [=this=].{{TCPSocket/[[closedPromise]]}}.
         </ol>
 
       </section>
@@ -705,8 +719,9 @@
       <pre class="idl">
         [Exposed=(Window,Worker), SecureContext]
         interface UDPSocket {
-          constructor(DOMString remoteAddress, unsigned short remotePort,
-              optional UDPSocketOptions options = {});
+          constructor(DOMString remoteAddress,
+                      unsigned short remotePort,
+                      optional UDPSocketOptions options = {});
 
           readonly attribute Promise&lt;UDPSocketConnection> connection;
           readonly attribute Promise&lt;undefined> closed;
@@ -735,11 +750,11 @@
           <td>A {{WritableStream}} that transmits data to the socket
         <tr>
           <td><dfn>[[\connectionPromise]]</dfn>
-          <td>`null`
+          <td>`new Promise`
           <td>A {{Promise}} used to wait for the connection to be established. Corresponds to the {{UDPSocket/connection}} member.
         <tr>
           <td><dfn>[[\closedPromise]]
-          <td>`null`
+          <td>`new Promise`
           <td>A {{Promise}} used to wait for the socket to close or error. Corresponds to the {{UDPSocket/closed}} member.
       </table>
 
@@ -754,7 +769,7 @@
             const socket = new UDPSocket(/*remoteAddress=*/, /*remotePort=*/, /*options=*/);
           </pre>
 
-          The developer should wait for the connection to be established before accessing the {{UDPSocket/connection}} attribute. 
+          The developer should wait for the {{UDPSocket/connection}} promise to be resolved to gain access to {{UDPSocketConnection/readable}} and {{UDPSocketConnection/writable}} streams.
 
           <pre class="js">
             const { readable, writable } = await socket.connection;
@@ -770,10 +785,10 @@
         <ol>
           <li>If [=this=]'s [=relevant global object=]'s [=associated Document=] is
         not [=allowed to use=] the [=policy-controlled feature=] named "[=policy-controlled feature/direct-sockets=]", throw a
-        "{{NotAllowedError}}" {{DOMException}} and return `null`.
-          <li>If |options|["{{UDPSocketOptions/sendBufferSize}}"] is equal to 0, throw a {{TypeError}} and return `null`.
-          <li>If |options|["{{UDPSocketOptions/receiveBufferSize}}"] is equal to 0, throw a {{TypeError}} and return `null`.
-          <li>If |options|["{{UDPSocketOptions/readableStreamBufferSize}}"] is equal to 0, throw a {{TypeError}} and return `null`.
+        "{{NotAllowedError}}" {{DOMException}}.
+          <li>If |options|["{{UDPSocketOptions/sendBufferSize}}"] is equal to 0, throw a {{TypeError}}.
+          <li>If |options|["{{UDPSocketOptions/receiveBufferSize}}"] is equal to 0, throw a {{TypeError}}.
+          <li>If |options|["{{UDPSocketOptions/readableStreamBufferSize}}"] is equal to 0, throw a {{TypeError}}.
           
           <li>Perform the following steps [=in parallel=].
             <ol>
@@ -781,13 +796,17 @@
                 Invoke the operating system to open the TCP socket using the given |remoteAddress| and |remotePort| and the 
                 connection parameters (or their defaults) specified in |options|.
               <li>
-                If this fails for any reason:
+                If this fails for any reason, [=queue a global task=] on the [=relevant global object=] of
+                [=this=] using the [=TCP socket task source=] to run the
+                following steps:
                 <ol>
                   <li>[=Reject=] the {{UDPSocket/[[connectionPromise]]}} with a "{{NetworkError}}" {{DOMException}}.
                   <li>Detach {{UDPSocket/[[closedPromise]]}}.
                 </ol>
               <li>
-                On success:
+                On success, [=queue a global task=] on the [=relevant global object=] of
+                [=this=] using the [=TCP socket task source=] to run the
+                following steps:
                 <ol>
                   <li>[=initialize udp readable stream|Initialize=] {{UDPSocket/[[readable]]}}.
                   <li>[=initialize udp writable stream|Initialize=] {{UDPSocket/[[writable]]}}.
@@ -800,7 +819,6 @@
                   <li>Resolve [=this=].{{UDPSocket/[[connectionPromise]]}} with |conn|.
                 </ol>
             </ol>
-          <li>Return [=this=].
         </ol>
 
         <section data-dfn-for="UDPSocketOptions">
@@ -808,10 +826,10 @@
 
           <pre class="idl">
             dictionary UDPSocketOptions {
-              unsigned long sendBufferSize;
-              unsigned long receiveBufferSize;
+              [EnforceRange] unsigned long sendBufferSize;
+              [EnforceRange] unsigned long receiveBufferSize;
 
-              unsigned short readableStreamBufferSize;
+              [EnforceRange] unsigned short readableStreamBufferSize;
             };
           </pre>
 
@@ -911,9 +929,9 @@
                         a "{{NetworkError}}" {{DOMException}}, cancel all other reading attempts and invoke the steps
                         to [=handle closing the UDP readable stream=].
                       <li>
-                        If |the socket was disconnected|, run the following steps:
+                        If the socket was disconnected, run the following steps:
                         <ol>
-                          <li>Reject [=this=].{{UDPSocket/[[closedPromise]]}}.
+                          <li>[=Reject=] [=this=].{{UDPSocket/[[closedPromise]]}}.
                           <li>
                             Invoke [=ReadableStream/error=] on
                             [=this=].{{UDPSocket/[[readable]]}} with a "{{NetworkError}}"
@@ -928,7 +946,7 @@
                 Return [=a promise resolved with=] `undefined`.
             </ol>
           <li>
-            Let |cancelAlgorithm| be the following steps (in parallel):
+            Let |cancelAlgorithm| be the following steps [=in parallel=]:
             <ol>
               <li>
                 Invoke the operating system to close the socket.
@@ -1095,7 +1113,7 @@
                         If an operating system error was encountered, [=reject=]
                         |promise| with an "{{NetworkError}}" {{DOMException}}.
                       <li>
-                        If |the socket was disconnected|, run the following steps:
+                        If the socket was disconnected, run the following steps:
                         <ol>
                           <li>
                             [=Reject=] |promise| with a "{{NetworkError}}"
@@ -1177,7 +1195,8 @@
             If [=this=].{{UDPSocket/[[readable]]}} is errored:
             <ul>
               <li> 
-                [=Reject=] [=this=].{{UDPSocket/[[closedPromise]]}}.
+                [=Reject=] [=this=].{{UDPSocket/[[closedPromise]]}}
+                with a "{{NetworkError}}" {{DOMException}}.
             </ul>
           <li> 
             If [=this=].{{UDPSocket/[[readable]]}} is closed:
@@ -1185,7 +1204,8 @@
               <li>
                 If [=this=].{{UDPSocket/[[writable]]}} is closed, [=resolve=] [=this=].{{UDPSocket/[[closedPromise]]}} with `undefined`.
               <li>
-                If [=this=].{{UDPSocket/[[writable]]}} is errored, [=reject=] [=this=].{{UDPSocket/[[closedPromise]]}}.
+                If [=this=].{{UDPSocket/[[writable]]}} is errored, [=reject=] [=this=].{{UDPSocket/[[closedPromise]]}} 
+                with a "{{NetworkError}}" {{DOMException}}.
             </ul>
         </ol>
 
@@ -1257,7 +1277,7 @@
               <dfn>localAddress</dfn> member
             </dt>
             <dd>
-              Local address that the socket is bound to.
+              Local IP address that the socket is bound to.
             </dd>
             <dt>
               <dfn>localPort</dfn> member
@@ -1282,7 +1302,7 @@
           </pre>
 
           Note that {{UDPSocket/closed}} will be automatically rejected or resolved once both
-          {{UDPSocket/[[readable]]}} and {{UDPSocket/[[writable]]}} reach an unreadable state.
+          {{UDPSocket/[[readable]]}} and {{UDPSocket/[[writable]]}} reach a closed or errored state.
         </aside>
 
         When called, returns the [=this=].{{UDPSocket/[[closedPromise]]}}.
@@ -1362,7 +1382,7 @@
             If [=this=].{{UDPSocket/[[connectionPromise]]}} is rejected or not yet resolved, [=reject=] with
             "{{InvalidStateError}}" {{DOMException}}.
           <li>
-            If [=this=].{{UDPSocket/[[closedPromise]]}} is already resolved, return [=this=].{{UDPSocket/[[closedPromise]]}}.
+            If [=this=].{{UDPSocket/[[closedPromise]]}} is settled, return [=this=].{{UDPSocket/[[closedPromise]]}}.
           <li>
             If [=this=].{{UDPSocket/[[readable]]}} or [=this=].{{UDPSocket/[[writable]]}} are <a href="https://streams.spec.whatwg.org/#lock">locked</a>,
             [=reject=] with "{{InvalidStateError}}" {{DOMException}}.
@@ -1376,8 +1396,6 @@
             [=WritableStream/abort=] on [=this=].{{UDPSocket/[[writable]]}}.
           <li>
             Mark |abortPromise| as handled.
-          <li>
-            [=Resolve=] [=this=].{{UDPSocket/[[closedPromise]]}} with `undefined`.
           <li>
             Return [=this=].{{UDPSocket/[[closedPromise]]}}.
         </ol>
