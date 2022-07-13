@@ -124,7 +124,7 @@
           <li>If only one of |options|["{{TCPSocketOptions/localAddress}}"] or |options|["{{TCPSocketOptions/localPort}}"] is specified, throw a {{TypeError}}  and return `null`.
           <li>If |options|["{{TCPSocketOptions/keepAlive}}"] is specified and |options|["{{TCPSocketOptions/keepAliveDelay}}"] is not, throw a {{TypeError}}  and return `null`.
           <li>If |options|["{{TCPSocketOptions/keepAlive}}"] is not specified and |options|["{{TCPSocketOptions/keepAliveDelay}}"] is, throw a {{TypeError}}  and return `null`.
-          <li>If |options|["{{TCPSocketOptions/keepAliveDelay}}"] is less than one second, throw a {{TypeError}}  and return `null`.
+          <li>If |options|["{{TCPSocketOptions/keepAliveDelay}}"] is less than 1,000, throw a {{TypeError}}  and return `null`.
           <li>If |options|["{{TCPSocketOptions/sendBufferSize}}"] is equal to 0, throw a {{TypeError}}  and return `null`.
           <li>If |options|["{{TCPSocketOptions/receiveBufferSize}}"] is equal to 0, throw a {{TypeError}}  and return `null`.
           <li>Perform the following steps [=in parallel=].
