@@ -28,7 +28,7 @@
           companyURL: "https://google.com",
           w3cid: 135463
         }],
-        xref: ["web-platform", "streams", "permissions-policy", "HTML", "infra", "DOM"],
+        xref: ["web-platform", "streams", "permissions-policy", "HTML", "infra", "DOM", "webidl"],
         // eventually add mdn: true, and caniuse: "direct-sockets"
       };
     </script>
@@ -126,7 +126,7 @@
           <li>If only one of |options|["{{TCPSocketOptions/localAddress}}"] or |options|["{{TCPSocketOptions/localPort}}"] is specified, throw a {{TypeError}}.
           -->
           <li>If only one of |options|["{{TCPSocketOptions/keepAlive}}"] or |options|["{{TCPSocketOptions/keepAliveDelay}}"] is specified, throw a {{TypeError}}.
-          <li>If |options|["{{TCPSocketOptions/keepAliveDelay}}"] is less than one second, throw a {{TypeError}}.
+          <li>If |options|["{{TCPSocketOptions/keepAliveDelay}}"] is less than 1,000, throw a {{TypeError}}.
           <li>If |options|["{{TCPSocketOptions/sendBufferSize}}"] is equal to 0, throw a {{TypeError}}.
           <li>If |options|["{{TCPSocketOptions/receiveBufferSize}}"] is equal to 0, throw a {{TypeError}}.
           <li>Perform the following steps [=in parallel=].
@@ -284,7 +284,7 @@
                       <li>
                         Invoke [=ReadableStream/close=] on [=this=].{{TCPSocket/[[readable]]}}.
                       <li>
-                        Invoke the steps to [=handle closing the readable stream=].
+                        Invoke the steps to [=handle closing the TCP readable stream=].
                     </ol>
                   <li>
                     If no errors were encountered run the following steps:
@@ -302,22 +302,7 @@
                     If an operating system error was encountered, invoke
                     [=ReadableStream/error=] on [=this=].{{TCPSocket/[[readable]]}} with
                     a "{{NetworkError}}" {{DOMException}} and invoke the steps
-                    to [=handle closing the readable stream=].
-                  <li>
-                    If the socket was disconnected, run the following steps:
-                    <ol>
-                      <li>
-                        [=Reject=] [=this=].{{TCPSocket/[[closedPromise]]}}
-                        with a "{{NetworkError}}" {{DOMException}}.
-                      <li>
-                        Invoke [=ReadableStream/error=] on
-                        [=this=].{{TCPSocket/[[readable]]}} with a "{{NetworkError}}"
-                        {{DOMException}}.
-                      <li>
-                        Invoke the steps to [=handle closing the readable
-                        stream=].
-                    </ol>
-                </ol>
+                    to [=handle closing the TCP readable stream=].
             </ol>
           <li>
             Let |cancelAlgorithm| be the following steps [=in parallel=]:
@@ -325,7 +310,7 @@
               <li>
                 Invoke the operating system to close the socket.
               <li>
-                Invoke the steps to [=handle closing the readable stream=].
+                Invoke the steps to [=handle closing the TCP readable stream=].
             </ol>
           <li>
             [=ReadableStream/Set up=] |stream| with
@@ -338,7 +323,7 @@
           <li>Set [=this=].{{TCPSocket/[[readable]]}} to |stream|.
         </ol>
 
-        To <dfn>handle closing the readable stream</dfn> perform the following steps:
+        To <dfn>handle closing the TCP readable stream</dfn> perform the following steps:
 
         <ol>
           <li>
@@ -428,16 +413,13 @@
                           invocation of this algorithm has resolved.
                         </div>
                       <li>
-                        If an operating system error was encountered, [=reject=]
-                        |promise| with an "{{NetworkError}}" {{DOMException}}.
-                      <li>
-                        If the socket was disconnected, run the following steps:
+                        If an operating system error was encountered:
                         <ol>
                           <li>
                             [=Reject=] |promise| with a "{{NetworkError}}"
                             {{DOMException}}.
                           <li>
-                            Invoke the steps to [=handle closing the writable
+                            Invoke the steps to [=handle closing the TCP writable
                             stream=].
                         </ol>
                       <li>
@@ -457,7 +439,7 @@
                   <li>
                     Invoke the operating system to shutdown the socket for writing.
                   <li>
-                    Invoke the steps to [=handle closing the writable stream=].
+                    Invoke the steps to [=handle closing the TCP writable stream=].
                   <li>[=Resolve=] |promise| with `undefined`.
                 </ol>
               <li>Return |promise|.
@@ -471,7 +453,7 @@
                   <li>
                     Invoke the operating system to shutdown the socket for writing.
                   <li>
-                    Invoke the steps to [=handle closing the writable stream=].
+                    Invoke the steps to [=handle closing the TCP writable stream=].
                   <li>
                     If |signal| is [=AbortSignal/aborted=], [=reject=] |promise|
                     with |signal|'s [=AbortSignal/abort reason=].
@@ -500,7 +482,7 @@
           <li>Set [=this=].{{TCPSocket/[[writable]]}} to |stream|.
         </ol>
 
-        To <dfn>handle closing the writable stream</dfn> perform the following steps:
+        To <dfn>handle closing the TCP writable stream</dfn> perform the following steps:
 
         <ol>
           <li>
@@ -577,7 +559,7 @@
               <dfn>remoteAddress</dfn> member
             </dt>
             <dd>
-              Resolved remote address that the socket is connected to.
+              Resolved remote IP address that the socket is connected to.
             </dd>
             <dt>
               <dfn>remotePort</dfn> member
@@ -677,7 +659,7 @@
             const read_complete = readUntilClosed();
 
             // Sometime later...
-            reader.cancel();
+            reader.releaseLock();
             await read_complete;
           </pre>
 
@@ -698,12 +680,12 @@
             Let |cancelPromise:Promise| be the result of invoking
             [=ReadableStream/cancel=] on [=this=].{{TCPSocket/[[readable]]}}.
           <li>
-            Mark |cancelPromise| as handled.
+            Set |cancelPromise|.[[\PromiseIsHandled]] to true.
           <li>
             Let |abortPromise:Promise| be the result of invoking
             [=WritableStream/abort=] on [=this=].{{TCPSocket/[[writable]]}}.
           <li>
-            Mark |abortPromise| as handled.
+            Set |abortPromise|.[[\PromiseIsHandled]] to true.
           <li>
             Return [=this=].{{TCPSocket/[[closedPromise]]}}.
         </ol>
@@ -913,12 +895,12 @@
                             Let |chunk| be a [=new=] {{Uint8Array}} view over |buffer|,
                             who's length is the length of |bytes|.
                           <li> 
-                            Let |message:UDPMessage| be a new |UDPMessage|.
+                            Let |message:UDPMessage| be a new {{UDPMessage}}.
                           <li>
-                            Set |message|.{{UDPMessage/data}} to |chunk|.
+                            Set |message|["{{UDPMessage/data}}"] to |chunk|.
                           <li>
                             Infer the origins of the received UDP packet and populate
-                            |message|.["{{UDPMessage/remoteAddress}}"] and |message|.["{{UDPMessage/remotePort}}"] accordingly. 
+                            |message|["{{UDPMessage/remoteAddress}}"] and |message|["{{UDPMessage/remotePort}}"] accordingly. 
                           <li>
                             Invoke [=ReadableStream/enqueue=] on
                             [=this=].{{UDPSocket/[[readable]]}} with |message|.
@@ -928,18 +910,6 @@
                         [=ReadableStream/error=] on [=this=].{{UDPSocket/[[readable]]}} with
                         a "{{NetworkError}}" {{DOMException}}, cancel all other reading attempts and invoke the steps
                         to [=handle closing the UDP readable stream=].
-                      <li>
-                        If the socket was disconnected, run the following steps:
-                        <ol>
-                          <li>[=Reject=] [=this=].{{UDPSocket/[[closedPromise]]}}.
-                          <li>
-                            Invoke [=ReadableStream/error=] on
-                            [=this=].{{UDPSocket/[[readable]]}} with a "{{NetworkError}}"
-                            {{DOMException}}.
-                          <li>
-                            Invoke the steps to [=handle closing the UDP readable
-                            stream=].
-                        </ol>
                     </ol>
                 </ol>
               <li>
@@ -951,7 +921,7 @@
               <li>
                 Invoke the operating system to close the socket.
               <li>
-                Invoke the steps to [=handle closing the readable stream=].
+                Invoke the steps to [=handle closing the UDP readable stream=].
             </ol>
           <li>
             [=ReadableStream/Set up=] |stream| with
@@ -1093,7 +1063,7 @@
 
                     <div class="note">
                       The operating system may return from this operation once
-                      |bytes| has been queued for transmission rather than after it
+                      |message|["{{UDPMessage/data}}"] has been queued for transmission rather than after it
                       has been transmitted.
                     </div>
                   <li>
@@ -1103,17 +1073,8 @@
                     <ol>
                       <li>
                         If the data was successfully written, [=resolve=] |promise| with `undefined`.
-
-                        <div class="note">
-                          [[STREAMS]] specifies that |writeAlgorithm| will only be
-                          invoked after the {{Promise}} returned by a previous
-                          invocation of this algorithm has resolved.
-                        </div>
                       <li>
-                        If an operating system error was encountered, [=reject=]
-                        |promise| with an "{{NetworkError}}" {{DOMException}}.
-                      <li>
-                        If the socket was disconnected, run the following steps:
+                        If an operating system error was encountered:
                         <ol>
                           <li>
                             [=Reject=] |promise| with a "{{NetworkError}}"
@@ -1265,7 +1226,7 @@
               <dfn>remoteAddress</dfn> member
             </dt>
             <dd>
-              Resolved remote address that the socket is connected to.
+              Resolved remote IP address that the socket is connected to.
             </dd>
             <dt>
               <dfn>remotePort</dfn> member
@@ -1369,7 +1330,7 @@
             const read_complete = readUntilClosed();
 
             // Sometime later...
-            reader.cancel();
+            reader.releaseLock();
             await read_complete;
           </pre>
 
@@ -1390,12 +1351,12 @@
             Let |cancelPromise:Promise| be the result of invoking
             [=ReadableStream/cancel=] on [=this=].{{UDPSocket/[[readable]]}}.
           <li>
-            Mark |cancelPromise| as handled.
+            Set |cancelPromise|.[[\PromiseIsHandled]] as handled.
           <li>
             Let |abortPromise:Promise| be the result of invoking
             [=WritableStream/abort=] on [=this=].{{UDPSocket/[[writable]]}}.
           <li>
-            Mark |abortPromise| as handled.
+            Set |abortPromise|.[[\PromiseIsHandled]] as handled.
           <li>
             Return [=this=].{{UDPSocket/[[closedPromise]]}}.
         </ol>
