@@ -59,7 +59,7 @@
                       unsigned short remotePort,
                       optional TCPSocketOptions options = {});
 
-          readonly attribute Promise&lt;TCPSocketConnection> connection;
+          readonly attribute Promise&lt;TCPSocketOpenInfo> opened;
           readonly attribute Promise&lt;undefined> closed;
 
           Promise&lt;undefined> close();
@@ -86,9 +86,9 @@
           <td>`null`
           <td>A {{WritableStream}} that transmits data to the socket
         <tr>
-          <td><dfn>[[\connectionPromise]]</dfn>
+          <td><dfn>[[\openedPromise]]</dfn>
           <td>`new Promise`
-          <td>A {{Promise}} used to wait for the connection to be established. Corresponds to the {{TCPSocket/connection}} member.
+          <td>A {{Promise}} used to wait for the socket to be opened. Corresponds to the {{TCPSocket/opened}} member.
         <tr>
           <td><dfn>[[\closedPromise]]
           <td>`new Promise`
@@ -106,14 +106,14 @@
             const socket = new TCPSocket(/*remoteAddress=*/, /*remotePort=*/, /*options=*/);
           </pre>
 
-          The developer should wait for the {{TCPSocket/connection}} promise to be resolved to gain access to {{TCPSocketConnection/readable}} and {{TCPSocketConnection/writable}} streams.
+          The developer should wait for the {{TCPSocket/opened}} promise to be resolved to gain access to {{TCPSocketOpenInfo/readable}} and {{TCPSocketOpenInfo/writable}} streams.
 
           <pre class="js">
-            const { readable, writable } = await socket.connection;
+            const { readable, writable } = await socket.opened;
           </pre>
 
-          Once {{TCPSocket/connection}} has resolved, the {{TCPSocketConnection/readable}} and {{TCPSocketConnection/writable}}
-          can be accessed to get the {{ReadableStream}} and {{WritableStream}} instances for receiving data from and sending data to the connected socket.
+          Once {{TCPSocket/opened}} has resolved, the {{TCPSocketOpenInfo/readable}} and {{TCPSocketOpenInfo/writable}}
+          can be accessed to get the {{ReadableStream}} and {{WritableStream}} instances for receiving data from and sending data to the socket.
         </aside>
 
         The {{TCPSocket/constructor()}} steps are:
@@ -139,7 +139,7 @@
                 [=this=] using the [=TCP socket task source=] to run the
                 following steps:
                 <ol>
-                  <li>[=Reject=] the {{TCPSocket/[[connectionPromise]]}} with a "{{NetworkError}}" {{DOMException}}.
+                  <li>[=Reject=] the {{TCPSocket/[[openedPromise]]}} with a "{{NetworkError}}" {{DOMException}}.
                   <li>Detach {{TCPSocket/[[closedPromise]]}}.
                 </ol>
               <li>
@@ -149,13 +149,13 @@
                 <ol>
                   <li>[=initialize tcp readable stream|Initialize=] {{TCPSocket/[[readable]]}}.
                   <li>[=initialize tcp writable stream|Initialize=] {{TCPSocket/[[writable]]}}.
-                  <li>Let |conn:TCPSocketConnection| be a new {{TCPSocketConnection}}.
-                  <li>Set |conn|["{{TCPSocketConnection/readable}}"] to [=this=].{{TCPSocket/[[readable]]}}.
-                  <li>Set |conn|["{{TCPSocketConnection/writable}}"] to [=this=].{{TCPSocket/[[writable]]}}.
-                  <li>Populate the remaining fields of |conn| using the information provided by the operating system:
-                      |conn|["{{TCPSocketConnection/remoteAddress}}"], |conn|["{{TCPSocketConnection/remotePort}}"],
-                      |conn|["{{TCPSocketConnection/localAddress}}"] and |conn|["{{TCPSocketConnection/localPort}}"].
-                  <li>Resolve [=this=].{{TCPSocket/[[connectionPromise]]}} with |conn|.
+                  <li>Let |conn:TCPSocketOpenInfo| be a new {{TCPSocketOpenInfo}}.
+                  <li>Set |openInfo|["{{TCPSocketOpenInfo/readable}}"] to [=this=].{{TCPSocket/[[readable]]}}.
+                  <li>Set |openInfo|["{{TCPSocketOpenInfo/writable}}"] to [=this=].{{TCPSocket/[[writable]]}}.
+                  <li>Populate the remaining fields of |openInfo| using the information provided by the operating system:
+                      |openInfo|["{{TCPSocketOpenInfo/remoteAddress}}"], |openInfo|["{{TCPSocketOpenInfo/remotePort}}"],
+                      |openInfo|["{{TCPSocketOpenInfo/localAddress}}"] and |openInfo|["{{TCPSocketOpenInfo/localPort}}"].
+                  <li>Resolve [=this=].{{TCPSocket/[[openedPromise]]}} with |openInfo|.
                 </ol>
             </ol>
         </ol>
@@ -247,7 +247,7 @@
           An application receiving data from a TCP socket will typically use the {{ReadableStream}} like this:
 
           <pre class="js">
-            const { readable } = await socket.connection;
+            const { readable } = await socket.opened;
 
             const reader = readable.getReader();
 
@@ -358,7 +358,7 @@
           <pre class="js">
             const encoder = new TextEncoder();
 
-            const { writable } = await socket.connection;
+            const { writable } = await socket.opened;
             const writer = writable.getWriter();
 
             await writer.write(encoder.encode("PING"));  
@@ -506,15 +506,15 @@
       </section>
 
       <section>
-        <h3><dfn>connection</dfn> attribute</h3>
+        <h3><dfn>opened</dfn> attribute</h3>
 
         <aside class="example">
-          The {{TCPSocket/connection}} is an attribute containing all information about the socket connection.
-          Once it is resolved, the developer can use the {{TCPSocketConnection/readable}} and {{TCPSocketConnection/writable}}
+          The {{TCPSocket/opened}} is an attribute containing all information about the socket.
+          Once it is resolved, the developer can use the {{TCPSocketOpenInfo/readable}} and {{TCPSocketOpenInfo/writable}}
           to read from and write to the socket.
 
           <pre class="js">
-            const { readable, writable } = await socket.connection;
+            const { readable, writable } = await socket.opened;
             
             const reader = readable.getReader();
             // Read from the socket using |reader|...
@@ -524,13 +524,13 @@
           </pre>
         </aside>
         
-        When called, returns the [=this=].{{TCPSocket/[[connectionPromise]]}}.
+        When called, returns the [=this=].{{TCPSocket/[[openedPromise]]}}.
 
-        <section data-dfn-for="TCPSocketConnection">
-          <h4><dfn>TCPSocketConnection</dfn> dictionary</h4>
+        <section data-dfn-for="TCPSocketOpenInfo">
+          <h4><dfn>TCPSocketOpenInfo</dfn> dictionary</h4>
 
           <pre class="idl">
-            dictionary TCPSocketConnection {
+            dictionary TCPSocketOpenInfo {
               ReadableStream readable;
               WritableStream writable;
 
@@ -547,13 +547,13 @@
               <dfn>readable</dfn> member
             </dt>
             <dd>
-              The readable side of the connection. Set to {{TCPSocket/[[readable]]}}.
+              The readable side of the socket. Set to {{TCPSocket/[[readable]]}}.
             </dd>
             <dt>
               <dfn>writable</dfn> member
             </dt>
             <dd>
-              The writable side of the connection. Set to {{TCPSocket/[[writable]]}}.
+              The writable side of the socket. Set to {{TCPSocket/[[writable]]}}.
             </dd>
             <dt>
               <dfn>remoteAddress</dfn> member
@@ -611,11 +611,11 @@
 
           <p>
           Calling `socket.`{{UDPSocket/close()}} implicitly invokes
-          `connection.`{{UDPSocketConnection/readable}}`.`{{ReadableStream/cancel()}} and
-          `connection.`{{UDPSocketConnection/writable}}`.`{{WritableStream/abort()}} in order to
+          `opened.`{{UDPSocketOpenInfo/readable}}`.`{{ReadableStream/cancel()}} and
+          `opened.`{{UDPSocketOpenInfo/writable}}`.`{{WritableStream/abort()}} in order to
           clear any buffered data. If the application has called
-          `connection.`{{UDPSocketConnection/readable}}`.`{{ReadableStream/getReader()}} or
-          `connection.`{{UDPSocketConnection/writable}}`.`{{WritableStream/getWriter()}} the stream
+          `opened.`{{UDPSocketOpenInfo/readable}}`.`{{ReadableStream/getReader()}} or
+          `opened.`{{UDPSocketOpenInfo/writable}}`.`{{WritableStream/getWriter()}} the stream
           is locked and the socket cannot be closed. This forces the developer to
           decide how to handle any read or write operations that are in progress.
 
@@ -626,7 +626,7 @@
 
           <pre class="js">
             const encoder = new TextEncoder();
-            const { writable } = await socket.connection;
+            const { writable } = await socket.opened;
             const writer = writable.getWriter();
 
             writer.write(encoder.encode("A long message that will take..."));
@@ -640,7 +640,7 @@
           If a loop is being used to read data from the socket, then it must be exited before calling `socket`.{{TCPSocket/close()}}.
 
           <pre class="js">
-            const { readable } = await socket.connection;
+            const { readable } = await socket.opened;
             const reader = readable.getReader();
 
             async function readUntilClosed() {
@@ -669,7 +669,7 @@
 
         <ol>
           <li>
-            If [=this=].{{TCPSocket/[[connectionPromise]]}} is rejected or not yet resolved, [=reject=] with
+            If [=this=].{{TCPSocket/[[openedPromise]]}} is rejected or not yet resolved, [=reject=] with
             "{{InvalidStateError}}" {{DOMException}}.
           <li>
             If [=this=].{{TCPSocket/[[closedPromise]]}} is settled, return [=this=].{{TCPSocket/[[closedPromise]]}}.
@@ -705,7 +705,7 @@
                       unsigned short remotePort,
                       optional UDPSocketOptions options = {});
 
-          readonly attribute Promise&lt;UDPSocketConnection> connection;
+          readonly attribute Promise&lt;UDPSocketOpenInfo> opened;
           readonly attribute Promise&lt;undefined> closed;
 
           Promise&lt;undefined> close();
@@ -731,9 +731,9 @@
           <td>`null`
           <td>A {{WritableStream}} that transmits data to the socket
         <tr>
-          <td><dfn>[[\connectionPromise]]</dfn>
+          <td><dfn>[[\openedPromise]]</dfn>
           <td>`new Promise`
-          <td>A {{Promise}} used to wait for the connection to be established. Corresponds to the {{UDPSocket/connection}} member.
+          <td>A {{Promise}} used to wait for the socket to be opened. Corresponds to the {{UDPSocket/opened}} member.
         <tr>
           <td><dfn>[[\closedPromise]]
           <td>`new Promise`
@@ -744,21 +744,21 @@
         <h3><dfn>constructor()</dfn> method</h3>
 
         <aside class="example">
-          In order to communicate via UDP a socket connection must be requested first. The socket object constructor
+          In order to communicate via UDP a socket must be opened first. The socket object constructor
           allowes the site to specify the necessary parameters which control how data is transmitted and received.
 
           <pre class="js">
             const socket = new UDPSocket(/*remoteAddress=*/, /*remotePort=*/, /*options=*/);
           </pre>
 
-          The developer should wait for the {{UDPSocket/connection}} promise to be resolved to gain access to {{UDPSocketConnection/readable}} and {{UDPSocketConnection/writable}} streams.
+          The developer should wait for the {{UDPSocket/opened}} promise to be resolved to gain access to {{UDPSocketOpenInfo/readable}} and {{UDPSocketOpenInfo/writable}} streams.
 
           <pre class="js">
-            const { readable, writable } = await socket.connection;
+            const { readable, writable } = await socket.opened;
           </pre>
 
-          Once {{UDPSocket/connection}} has resolved, the {{UDPSocketConnection/readable}} and {{UDPSocketConnection/writable}}
-          can be accessed to get the {{ReadableStream}} and {{WritableStream}} instances for receiving data from and sending data to the connected socket.
+          Once {{UDPSocket/opened}} has resolved, the {{UDPSocketOpenInfo/readable}} and {{UDPSocketOpenInfo/writable}}
+          can be accessed to get the {{ReadableStream}} and {{WritableStream}} instances for receiving data from and sending data to the socket.
         </aside>
 
 
@@ -775,14 +775,14 @@
           <li>Perform the following steps [=in parallel=].
             <ol>
               <li>
-                Invoke the operating system to open the TCP socket using the given |remoteAddress| and |remotePort| and the 
+                Invoke the operating system to open the UDP socket using the given |remoteAddress| and |remotePort| and the 
                 connection parameters (or their defaults) specified in |options|.
               <li>
                 If this fails for any reason, [=queue a global task=] on the [=relevant global object=] of
                 [=this=] using the [=TCP socket task source=] to run the
                 following steps:
                 <ol>
-                  <li>[=Reject=] the {{UDPSocket/[[connectionPromise]]}} with a "{{NetworkError}}" {{DOMException}}.
+                  <li>[=Reject=] the {{UDPSocket/[[openedPromise]]}} with a "{{NetworkError}}" {{DOMException}}.
                   <li>Detach {{UDPSocket/[[closedPromise]]}}.
                 </ol>
               <li>
@@ -792,13 +792,13 @@
                 <ol>
                   <li>[=initialize udp readable stream|Initialize=] {{UDPSocket/[[readable]]}}.
                   <li>[=initialize udp writable stream|Initialize=] {{UDPSocket/[[writable]]}}.
-                  <li>Let |conn:UDPSocketConnection| be a new {{UDPSocketConnection}}.
-                  <li>Set |conn|["{{UDPSocketConnection/readable}}"] to [=this=].{{UDPSocket/[[readable]]}}.
-                  <li>Set |conn|["{{UDPSocketConnection/writable}}"] to [=this=].{{UDPSocket/[[writable]]}}.
-                  <li>Populate the remaining fields of |conn| using the information provided by the operating system:
-                      |conn|["{{UDPSocketConnection/remoteAddress}}"], |conn|["{{UDPSocketConnection/remotePort}}"],
-                      |conn|["{{UDPSocketConnection/localAddress}}"] and |conn|["{{UDPSocketConnection/localPort}}"].
-                  <li>Resolve [=this=].{{UDPSocket/[[connectionPromise]]}} with |conn|.
+                  <li>Let |conn:UDPSocketOpenInfo| be a new {{UDPSocketOpenInfo}}.
+                  <li>Set |openInfo|["{{UDPSocketOpenInfo/readable}}"] to [=this=].{{UDPSocket/[[readable]]}}.
+                  <li>Set |openInfo|["{{UDPSocketOpenInfo/writable}}"] to [=this=].{{UDPSocket/[[writable]]}}.
+                  <li>Populate the remaining fields of |openInfo| using the information provided by the operating system:
+                      |openInfo|["{{UDPSocketOpenInfo/remoteAddress}}"], |openInfo|["{{UDPSocketOpenInfo/remotePort}}"],
+                      |openInfo|["{{UDPSocketOpenInfo/localAddress}}"] and |openInfo|["{{UDPSocketOpenInfo/localPort}}"].
+                  <li>Resolve [=this=].{{UDPSocket/[[openedPromise]]}} with |openInfo|.
                 </ol>
             </ol>
         </ol>
@@ -846,7 +846,7 @@
           An application receiving data from a UDP socket will typically use the {{ReadableStream}} like this:
 
           <pre class="js">
-            const { readable } = await socket.connection;
+            const { readable } = await socket.opened;
 
             const reader = readable.getReader();
 
@@ -877,18 +877,19 @@
                 of [=this=].{{UDPSocket/[[readable]]}}'s
                 <a href="https://streams.spec.whatwg.org/#internal-queues">internal queue</a>.
               <li>
-                Run the following steps |desiredSize| times [=in parallel=].
+                Run the following steps in parallel:
                 <ol>
                   <li>
-                    Invoke the operating system to read a UDP packet from the socket, placing the result in the [=byte sequence=] |bytes|.
+                    Invoke the operating system to provide us |desiredSize| UDP packets from the socket.
                   <li>
                     [=Queue a global task=] on the [=relevant global object=] of
                     [=this=] using the [=UDP socket task source=] to run the
-                    following steps:
+                    following steps for each received packet:
                     <ol>
                       <li>
                         If no errors were encountered run the following steps:
                         <ol>
+                          <li>Let |bytes| be a [=byte sequence=] containing the packet data. 
                           <li>
                             Let |buffer| be a [=new=] {{ArrayBuffer}} created from |bytes|.
                           <li>
@@ -908,7 +909,7 @@
                       <li>
                         If an operating system error was encountered, invoke
                         [=ReadableStream/error=] on [=this=].{{UDPSocket/[[readable]]}} with
-                        a "{{NetworkError}}" {{DOMException}}, cancel all other reading attempts and invoke the steps
+                        a "{{NetworkError}}" {{DOMException}}, discard other packets and invoke the steps
                         to [=handle closing the UDP readable stream=].
                     </ol>
                 </ol>
@@ -982,7 +983,7 @@
               The remote address where the message came from / where the message should be sent.
               <div class="note">
                 The only current implementation (Chromium) ignores this parameter when writing.
-                When reading, is always equal to [=this=].{{UDPSocket/[[connectionPromise]]}}["{{UDPSocketConnection/remoteAddress}}"].
+                When reading, is always equal to [=this=].{{UDPSocket/[[openedPromise]]}}["{{UDPSocketOpenInfo/remoteAddress}}"].
               </div>
             </dd>
             <dt>
@@ -990,7 +991,7 @@
             </dt>
             <dd>
               The remote port where the message came from / where the message should be sent.
-              Currently has no effect on {{UDPSocket/[[writable]]}} and is always equal to {{UDPSocketConnection/remotePort}} on {{UDPSocketConnection/readable}}.
+              Currently has no effect on {{UDPSocket/[[writable]]}} and is always equal to {{UDPSocketOpenInfo/remotePort}} on {{UDPSocketOpenInfo/readable}}.
             </dd>
           </dl>
 
@@ -1010,7 +1011,7 @@
           <pre class="js">
             const encoder = new TextEncoder();
 
-            const { writable } = await socket.connection;
+            const { writable } = await socket.opened;
             const writer = writable.getWriter();
 
             const message = {
@@ -1173,15 +1174,15 @@
       </section>
 
       <section>
-        <h3><dfn>connection</dfn> attribute</h3>
+        <h3><dfn>opened</dfn> attribute</h3>
 
         <aside class="example">
-          The {{UDPSocket/connection}} is an attribute containing all information about the socket connection.
-          Once it is resolved, the developer can use the {{UDPSocketConnection/readable}} and {{UDPSocketConnection/writable}}
+          The {{UDPSocket/opened}} is an attribute containing all information about the socket.
+          Once it is resolved, the developer can use the {{UDPSocketOpenInfo/readable}} and {{UDPSocketOpenInfo/writable}}
           to read from and write to the socket.
 
           <pre class="js">
-            const { readable, writable } = await socket.connection;
+            const { readable, writable } = await socket.opened;
             
             const reader = readable.getReader();
             // Read from the socket using |reader|...
@@ -1191,13 +1192,13 @@
           </pre>
         </aside>
         
-        When called, returns the [=this=].{{UDPSocket/[[connectionPromise]]}}.
+        When called, returns the [=this=].{{UDPSocket/[[openedPromise]]}}.
 
-        <section data-dfn-for="UDPSocketConnection">
-          <h4><dfn>UDPSocketConnection</dfn> dictionary</h4>
+        <section data-dfn-for="UDPSocketOpenInfo">
+          <h4><dfn>UDPSocketOpenInfo</dfn> dictionary</h4>
 
           <pre class="idl">
-            dictionary UDPSocketConnection {
+            dictionary UDPSocketOpenInfo {
               ReadableStream readable;
               WritableStream writable;
 
@@ -1214,13 +1215,13 @@
               <dfn>readable</dfn> member
             </dt>
             <dd>
-              The readable side of the connection. Set to {{UDPSocket/[[readable]]}}.
+              The readable side of the socket. Set to {{UDPSocket/[[readable]]}}.
             </dd>
             <dt>
               <dfn>writable</dfn> member
             </dt>
             <dd>
-              The writable side of the connection. Set to {{UDPSocket/[[writable]]}}.
+              The writable side of the socket. Set to {{UDPSocket/[[writable]]}}.
             </dd>
             <dt>
               <dfn>remoteAddress</dfn> member
@@ -1278,11 +1279,11 @@
 
           <p>
           Calling `socket.`{{UDPSocket/close()}} implicitly invokes
-          `connection.`{{UDPSocketConnection/readable}}`.`{{ReadableStream/cancel()}} and
-          `connection.`{{UDPSocketConnection/writable}}`.`{{WritableStream/abort()}} in order to
+          `opened.`{{UDPSocketOpenInfo/readable}}`.`{{ReadableStream/cancel()}} and
+          `opened.`{{UDPSocketOpenInfo/writable}}`.`{{WritableStream/abort()}} in order to
           clear any buffered data. If the application has called
-          `connection.`{{UDPSocketConnection/readable}}`.`{{ReadableStream/getReader()}} or
-          `connection.`{{UDPSocketConnection/writable}}`.`{{WritableStream/getWriter()}} the stream
+          `opened.`{{UDPSocketOpenInfo/readable}}`.`{{ReadableStream/getReader()}} or
+          `opened.`{{UDPSocketOpenInfo/writable}}`.`{{WritableStream/getWriter()}} the stream
           is locked and the socket cannot be closed. This forces the developer to
           decide how to handle any read or write operations that are in progress.
 
@@ -1292,7 +1293,7 @@
 
           <pre class="js">
             const encoder = new TextEncoder();
-            const { writable } = await socket.connection;
+            const { writable } = await socket.opened;
             const writer = writable.getWriter();
 
             const message = {
@@ -1310,7 +1311,7 @@
           If a loop is being used to read data from the socket, then it must be exited before calling `socket`.{{UDPSocket/close()}}.
 
           <pre class="js">
-            const { readable } = await socket.connection;
+            const { readable } = await socket.opened;
             const reader = readable.getReader();
 
             async function readUntilClosed() {
@@ -1340,7 +1341,7 @@
 
         <ol>
           <li>
-            If [=this=].{{UDPSocket/[[connectionPromise]]}} is rejected or not yet resolved, [=reject=] with
+            If [=this=].{{UDPSocket/[[openedPromise]]}} is rejected or not yet resolved, [=reject=] with
             "{{InvalidStateError}}" {{DOMException}}.
           <li>
             If [=this=].{{UDPSocket/[[closedPromise]]}} is settled, return [=this=].{{UDPSocket/[[closedPromise]]}}.
