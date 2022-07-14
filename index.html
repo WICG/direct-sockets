@@ -140,7 +140,7 @@
                 following steps:
                 <ol>
                   <li>[=Reject=] the {{TCPSocket/[[openedPromise]]}} with a "{{NetworkError}}" {{DOMException}}.
-                  <li>Detach {{TCPSocket/[[closedPromise]]}}.
+                  <li>[=Reject=] the {{TCPSocket/[[closedPromise]]}} with a "{{NetworkError}}" {{DOMException}}.
                 </ol>
               <li>
                 On success, [=queue a global task=] on the [=relevant global object=] of
@@ -305,12 +305,28 @@
                     to [=handle closing the TCP readable stream=].
             </ol>
           <li>
-            Let |cancelAlgorithm| be the following steps [=in parallel=]:
+            Let |cancelAlgorithm| be the following steps:
             <ol>
               <li>
-                Invoke the operating system to close the socket.
+                Let |promise:Promise| be [=a new Promise=].
               <li>
-                Invoke the steps to [=handle closing the TCP readable stream=].
+                Run the following steps [=in parallel=]:
+                <ol>
+                  <li>
+                    Invoke the operating system to close the socket.
+                  <li>
+                    [=Queue a global task=] on the [=relevant global object=] of
+                    [=this=] using the [=TCP socket task source=] to run the
+                    following steps:
+                    <ol>
+                      <li>
+                        Invoke the steps to [=handle closing the TCP readable stream=].
+                      <li>
+                        [=Resolve=] |promise| with `undefined`.
+                    </ol>
+                </ol>
+              <li>
+                Return |promise|.
             </ol>
           <li>
             [=ReadableStream/Set up=] |stream| with
@@ -319,7 +335,7 @@
             <a href="https://streams.spec.whatwg.org/#readablestream-set-up-cancelalgorithm">cancelAlgorithm</a>
             set to |cancelAlgorithm|,
             <a href="https://streams.spec.whatwg.org/#readablestream-set-up-highwatermark">highWaterMark</a>
-            set to 0.
+            set to an implementation-defined value.
           <li>Set [=this=].{{TCPSocket/[[readable]]}} to |stream|.
         </ol>
 
@@ -410,7 +426,11 @@
                         <div class="note">
                           [[STREAMS]] specifies that |writeAlgorithm| will only be
                           invoked after the {{Promise}} returned by a previous
-                          invocation of this algorithm has resolved.
+                          invocation of this algorithm has resolved. For efficiency
+                          an implementation is allowed to resolve this {{Promise}}
+                          early in order to coalesce multiple chunks waiting in the
+                          {{WritableStream}}'s internal queue into a single request
+                          to the operating system.
                         </div>
                       <li>
                         If an operating system error was encountered:
@@ -433,33 +453,53 @@
           <li>
             Let |abortAlgorithm| be the following steps:
             <ol>
-              <li>Let |promise| be [=a new promise=].
-              <li>Run the following steps [=in parallel=]:
+              <li>
+                Let |promise| be [=a new promise=].
+              <li>
+                Run the following steps [=in parallel=]:
                 <ol>
                   <li>
                     Invoke the operating system to shutdown the socket for writing.
                   <li>
-                    Invoke the steps to [=handle closing the TCP writable stream=].
-                  <li>[=Resolve=] |promise| with `undefined`.
+                    [=Queue a global task=] on the [=relevant global object=] of
+                    [=this=] using the [=TCP socket task source=] to run the
+                    following steps:
+                    <ol>
+                      <li>
+                        Invoke the steps to [=handle closing the TCP writable stream=].
+                      <li>
+                        [=Resolve=] |promise| with `undefined`.
+                    </ol>
                 </ol>
-              <li>Return |promise|.
+              <li>
+                Return |promise|.
             </ol>
           <li>
             Let |closeAlgorithm| be the following steps:
             <ol>
-              <li>Let |promise| be [=a new promise=].
-              <li>Run the following steps [=in parallel=].
+              <li>
+                Let |promise| be [=a new promise=].
+              <li>
+                Run the following steps [=in parallel=].
                 <ol>
                   <li>
                     Invoke the operating system to shutdown the socket for writing.
                   <li>
-                    Invoke the steps to [=handle closing the TCP writable stream=].
-                  <li>
-                    If |signal| is [=AbortSignal/aborted=], [=reject=] |promise|
-                    with |signal|'s [=AbortSignal/abort reason=].
-                  <li>Otherwise, [=resolve=] |promise| with `undefined`.
+                    [=Queue a global task=] on the [=relevant global object=] of
+                    [=this=] using the [=TCP socket task source=] to run the
+                    following steps:
+                    <ol>
+                      <li>
+                        Invoke the steps to [=handle closing the TCP writable stream=].
+                      <li>
+                        If |signal| is [=AbortSignal/aborted=], [=reject=] |promise|
+                        with |signal|'s [=AbortSignal/abort reason=].
+                      <li>
+                        [=Resolve=] |promise| with `undefined`.
+                    </ol>
                 </ol>
-              <li>Return |promise|.
+              <li>
+                Return |promise|.
             </ol>
           <li>
             [=WritableStream/Set up=] |stream| with
@@ -470,7 +510,7 @@
             <a href="https://streams.spec.whatwg.org/#writablestream-set-up-closealgorithm">closeAlgorithm</a>
             set to |closeAlgorithm|,
             <a href="https://streams.spec.whatwg.org/#writablestream-set-up-highwatermark">highWaterMark</a>
-            set to 1.
+            set to an implementation-defined value.
           <li>
             [=AbortSignal/Add=] the following abort steps to |signal|:
             <ol>
@@ -779,15 +819,15 @@
                 connection parameters (or their defaults) specified in |options|.
               <li>
                 If this fails for any reason, [=queue a global task=] on the [=relevant global object=] of
-                [=this=] using the [=TCP socket task source=] to run the
+                [=this=] using the [=UDP socket task source=] to run the
                 following steps:
                 <ol>
                   <li>[=Reject=] the {{UDPSocket/[[openedPromise]]}} with a "{{NetworkError}}" {{DOMException}}.
-                  <li>Detach {{UDPSocket/[[closedPromise]]}}.
+                  <li>[=Reject=] the {{UDPSocket/[[closedPromise]]}} with a "{{NetworkError}}" {{DOMException}}.
                 </ol>
               <li>
                 On success, [=queue a global task=] on the [=relevant global object=] of
-                [=this=] using the [=TCP socket task source=] to run the
+                [=this=] using the [=UDP socket task source=] to run the
                 following steps:
                 <ol>
                   <li>[=initialize udp readable stream|Initialize=] {{UDPSocket/[[readable]]}}.
@@ -899,9 +939,11 @@
                             Let |message:UDPMessage| be a new {{UDPMessage}}.
                           <li>
                             Set |message|["{{UDPMessage/data}}"] to |chunk|.
+                          <!--
                           <li>
                             Infer the origins of the received UDP packet and populate
                             |message|["{{UDPMessage/remoteAddress}}"] and |message|["{{UDPMessage/remotePort}}"] accordingly. 
+                          -->
                           <li>
                             Invoke [=ReadableStream/enqueue=] on
                             [=this=].{{UDPSocket/[[readable]]}} with |message|.
@@ -917,12 +959,28 @@
                 Return [=a promise resolved with=] `undefined`.
             </ol>
           <li>
-            Let |cancelAlgorithm| be the following steps [=in parallel=]:
+            Let |cancelAlgorithm| be the following steps:
             <ol>
               <li>
-                Invoke the operating system to close the socket.
+                Let |promise:Promise| be [=a new Promise=].
               <li>
-                Invoke the steps to [=handle closing the UDP readable stream=].
+                Run the following steps [=in parallel=]:
+                <ol>
+                  <li>
+                    Invoke the operating system to close the socket.
+                  <li>
+                    [=Queue a global task=] on the [=relevant global object=] of
+                    [=this=] using the [=UDP socket task source=] to run the
+                    following steps:
+                    <ol>
+                      <li>
+                        Invoke the steps to [=handle closing the UDP readable stream=].
+                      <li>
+                        [=Resolve=] |promise| with `undefined`.
+                    </ol>
+                </ol>
+              <li>
+                Return |promise|.
             </ol>
           <li>
             [=ReadableStream/Set up=] |stream| with
@@ -961,8 +1019,10 @@
           <pre class="idl">
             dictionary UDPMessage {
               BufferSource   data;
+              <!--
               DOMString      remoteAddress;
               unsigned short remotePort;
+              -->
             };
           </pre>
 
@@ -976,6 +1036,7 @@
                 Note that for {{UDPSocket/[[readable]]}} the underlying type is always {{Uint8Array}}.
               </div>
             </dd>
+            <!--
             <dt>
               <dfn>remoteAddress</dfn> member
             </dt>
@@ -993,6 +1054,7 @@
               The remote port where the message came from / where the message should be sent.
               Currently has no effect on {{UDPSocket/[[writable]]}} and is always equal to {{UDPSocketOpenInfo/remotePort}} on {{UDPSocketOpenInfo/readable}}.
             </dd>
+            -->
           </dl>
 
         </section>
@@ -1057,10 +1119,12 @@
                   <li>
                     Invoke the operating system to send |message|["{{UDPMessage/data}}"] to the socket.
 
+                    <!--
                     <div class="note">
                       The |message|["{{UDPMessage/remoteAddress}}"] and |message|["{{UDPMessage/remotePort}}"]
                       currently have no effect on sending packets since the UDP socket is only allowed to operate in the connected mode.
                     </div>
+                    -->
 
                     <div class="note">
                       The operating system may return from this operation once
@@ -1101,10 +1165,17 @@
                 Run the following steps [=in parallel=]:
                 <ol>
                   <li>
-                    Invoke the operating system to close the socket.
+                    Invoke the operating system to shutdown the socket for writing.
                   <li>
-                    Invoke the steps to [=handle closing the UDP writable stream=].
-                  <li>[=Resolve=] |promise| with `undefined`.
+                    [=Queue a global task=] on the [=relevant global object=] of
+                    [=this=] using the [=UDP socket task source=] to run the
+                    following steps:
+                    <ol>
+                      <li>
+                        Invoke the steps to [=handle closing the UDP writable stream=].
+                      <li>
+                        [=Resolve=] |promise| with `undefined`.
+                    </ol>
                 </ol>
               <li>
                 Return |promise|.
@@ -1118,15 +1189,23 @@
                 Run the following steps [=in parallel=].
                 <ol>
                   <li>
-                    Invoke the operating system to close the socket.
+                    Invoke the operating system to shutdown the socket for writing.
                   <li>
-                    Invoke the steps to [=handle closing the UDP writable stream=].
-                  <li>
-                    If |signal| is [=AbortSignal/aborted=], [=reject=] |promise|
-                    with |signal|'s [=AbortSignal/abort reason=].
-                  <li>Otherwise, [=resolve=] |promise| with `undefined`.
+                    [=Queue a global task=] on the [=relevant global object=] of
+                    [=this=] using the [=UDP socket task source=] to run the
+                    following steps:
+                    <ol>
+                      <li>
+                        Invoke the steps to [=handle closing the UDP writable stream=].
+                      <li>
+                        If |signal| is [=AbortSignal/aborted=], [=reject=] |promise|
+                        with |signal|'s [=AbortSignal/abort reason=].
+                      <li>
+                        [=Resolve=] |promise| with `undefined`.
+                    </ol>
                 </ol>
-              <li>Return |promise|.
+              <li>
+                Return |promise|.
             </ol>
           <li>
             [=WritableStream/Set up=] |stream| with
@@ -1137,7 +1216,7 @@
             <a href="https://streams.spec.whatwg.org/#writablestream-set-up-closealgorithm">closeAlgorithm</a>
             set to |closeAlgorithm|,
             <a href="https://streams.spec.whatwg.org/#writablestream-set-up-highwatermark">highWaterMark</a>
-            set to 1.
+            set to an implementation-defined value.
           <li>
             [=AbortSignal/Add=] the following abort steps to |signal|:
             <ol>
