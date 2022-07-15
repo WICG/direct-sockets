@@ -189,8 +189,8 @@
               [EnforceRange] unsigned short localPort;
               -->
 
-              boolean noDelay;
-              boolean keepAlive;
+              boolean noDelay = false;
+              boolean keepAlive = false;
               [EnforceRange] unsigned long keepAliveDelay;
             };
           </pre>
@@ -377,16 +377,13 @@
                   <li>
                     If [=this=].{{TCPSocket/[[writable]]}} is errored,
                     [=reject=] [=this=].{{TCPSocket/[[closedPromise]]}}
-                    with a "{{NetworkError}}" {{DOMException}}.
+                    with [=this=].{{TCPSocket/[[writable]]}}.`[[storedPromise]]`.
                   <li>
-                    If [=this=].{{TCPSocket/[[writable]]}} is closed:
-                    <ul>
-                      <li>
-                        If [=this=].{{TCPSocket/[[readable]]}} is closed, [=resolve=] [=this=].{{TCPSocket/[[closedPromise]]}} with `undefined`.
-                      <li>
-                        If [=this=].{{TCPSocket/[[readable]]}} is errored, [=reject=] [=this=].{{TCPSocket/[[closedPromise]]}}
-                      with a "{{NetworkError}}" {{DOMException}}.
-                  </ul>
+                    Otherwise, if [=this=].{{TCPSocket/[[readable]]}} is errored,
+                    [=reject=] [=this=].{{TCPSocket/[[closedPromise]]}}
+                    with [=this=].{{TCPSocket/[[readable]]}}.`[[storedPromise]]`.
+                  <li>
+                    Otherwise [=resolve=] [=this=].{{TCPSocket/[[closedPromise]]}} with `undefined`.
                 </ul>
             </ol>
         </ol>
@@ -573,18 +570,15 @@
                 following steps:
                 <ul>
                   <li>
-                    If [=this=].{{TCPSocket/[[readable]]}} is errored,
+                    If [=this=].{{TCPSocket/[[writable]]}} is errored,
                     [=reject=] [=this=].{{TCPSocket/[[closedPromise]]}}
-                    with a "{{NetworkError}}" {{DOMException}}.
-                  <li> 
-                    If [=this=].{{TCPSocket/[[readable]]}} is closed:
-                    <ul>
-                      <li>
-                        If [=this=].{{TCPSocket/[[writable]]}} is closed, [=resolve=] [=this=].{{TCPSocket/[[closedPromise]]}} with `undefined`.
-                      <li>
-                        If [=this=].{{TCPSocket/[[writable]]}} is errored, [=reject=] [=this=].{{TCPSocket/[[closedPromise]]}}
-                      with a "{{NetworkError}}" {{DOMException}}.
-                  </ul>
+                    with [=this=].{{TCPSocket/[[writable]]}}.`[[storedPromise]]`.
+                  <li>
+                    Otherwise, if [=this=].{{TCPSocket/[[readable]]}} is errored,
+                    [=reject=] [=this=].{{TCPSocket/[[closedPromise]]}}
+                    with [=this=].{{TCPSocket/[[readable]]}}.`[[storedPromise]]`.
+                  <li>
+                    Otherwise [=resolve=] [=this=].{{TCPSocket/[[closedPromise]]}} with `undefined`.
                 </ul>
             </ol>
         </ol>
@@ -1064,18 +1058,13 @@
                   <li>
                     If [=this=].{{UDPSocket/[[writable]]}} is errored,
                     [=reject=] [=this=].{{UDPSocket/[[closedPromise]]}}
-                    with a "{{NetworkError}}" {{DOMException}}.
+                    with [=this=].{{UDPSocket/[[writable]]}}.`[[storedPromise]]`.
                   <li>
-                    If [=this=].{{UDPSocket/[[writable]]}} is closed:
-                    <ul>
-                      <li>
-                        If [=this=].{{UDPSocket/[[readable]]}} is closed,
-                        [=resolve=] [=this=].{{UDPSocket/[[closedPromise]]}} with `undefined`.
-                      <li>
-                        If [=this=].{{UDPSocket/[[readable]]}} is errored,
-                        [=reject=] [=this=].{{UDPSocket/[[closedPromise]]}}
-                        with a "{{NetworkError}}" {{DOMException}}.
-                  </ul>
+                    Otherwise, if [=this=].{{UDPSocket/[[readable]]}} is errored,
+                    [=reject=] [=this=].{{UDPSocket/[[closedPromise]]}}
+                    with [=this=].{{UDPSocket/[[readable]]}}.`[[storedPromise]]`.
+                  <li>
+                    Otherwise [=resolve=] [=this=].{{UDPSocket/[[closedPromise]]}} with `undefined`.
                 </ul>
             </ol>
         </ol>
@@ -1309,19 +1298,15 @@
                 following steps:
                 <ul>
                   <li>
-                    If [=this=].{{UDPSocket/[[readable]]}} is errored,
+                    If [=this=].{{UDPSocket/[[writable]]}} is errored,
                     [=reject=] [=this=].{{UDPSocket/[[closedPromise]]}}
-                    with a "{{NetworkError}}" {{DOMException}}.
+                    with [=this=].{{UDPSocket/[[writable]]}}.`[[storedPromise]]`.
+                  <li>
+                    Otherwise, if [=this=].{{UDPSocket/[[readable]]}} is errored,
+                    [=reject=] [=this=].{{UDPSocket/[[closedPromise]]}}
+                    with [=this=].{{UDPSocket/[[readable]]}}.`[[storedPromise]]`.
                   <li> 
-                    If [=this=].{{UDPSocket/[[readable]]}} is closed:
-                    <ul>
-                      <li>
-                        If [=this=].{{UDPSocket/[[writable]]}} is closed,
-                        [=resolve=] [=this=].{{UDPSocket/[[closedPromise]]}} with `undefined`.
-                      <li>
-                        If [=this=].{{TCPSocket/[[writable]]}} is errored,
-                        [=reject=] [=this=].{{UDPSocket/[[closedPromise]]}} with a "{{NetworkError}}" {{DOMException}}.
-                  </ul>
+                    Otherwise, [=resolve=] [=this=].{{UDPSocket/[[closedPromise]]}} with `undefined`.
                 </ul>
             </ol>
         </ol>
