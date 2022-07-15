@@ -329,20 +329,14 @@
               <li>
                 Let |promise:Promise| be [=a new Promise=].
               <li>
-                Run the following steps [=in parallel=]:
+                [=Queue a global task=] on the [=relevant global object=] of
+                [=this=] using the [=TCP socket task source=] to run the
+                following steps:
                 <ol>
                   <li>
-                    Invoke the operating system to close the socket.
+                    Invoke the steps to [=handle closing the TCP readable stream=].
                   <li>
-                    [=Queue a global task=] on the [=relevant global object=] of
-                    [=this=] using the [=TCP socket task source=] to run the
-                    following steps:
-                    <ol>
-                      <li>
-                        Invoke the steps to [=handle closing the TCP readable stream=].
-                      <li>
-                        [=Resolve=] |promise| with `undefined`.
-                    </ol>
+                    [=Resolve=] |promise| with `undefined`.
                 </ol>
               <li>
                 Return |promise|.
@@ -362,21 +356,32 @@
 
         <ol>
           <li>
-            If [=this=].{{TCPSocket/[[writable]]}} is errored:
-            <ul>
-              <li> 
-                [=Reject=] [=this=].{{TCPSocket/[[closedPromise]]}}
-                with a "{{NetworkError}}" {{DOMException}}.
-            </ul>
-          <li> 
-            If [=this=].{{TCPSocket/[[writable]]}} is closed:
-            <ul>
+            If [=this=].{{TCPSocket/[[writable]]}} is active, ignore the following steps.
+          <li>
+            Run the following steps [=in parallel=].
+            <ol>
               <li>
-                If [=this=].{{TCPSocket/[[readable]]}} is closed, [=resolve=] [=this=].{{TCPSocket/[[closedPromise]]}} with `undefined`.
+                Invoke the operating system to close the socket.
               <li>
-                If [=this=].{{TCPSocket/[[readable]]}} is errored, [=reject=] [=this=].{{TCPSocket/[[closedPromise]]}}
-                with a "{{NetworkError}}" {{DOMException}}.
-            </ul>
+                [=Queue a global task=] on the [=relevant global object=] of
+                [=this=] using the [=TCP socket task source=] to run the
+                following steps:
+                <ul>
+                  <li>
+                    If [=this=].{{TCPSocket/[[writable]]}} is errored,
+                    [=reject=] [=this=].{{TCPSocket/[[closedPromise]]}}
+                    with a "{{NetworkError}}" {{DOMException}}.
+                  <li>
+                    If [=this=].{{TCPSocket/[[writable]]}} is closed:
+                    <ul>
+                      <li>
+                        If [=this=].{{TCPSocket/[[readable]]}} is closed, [=resolve=] [=this=].{{TCPSocket/[[closedPromise]]}} with `undefined`.
+                      <li>
+                        If [=this=].{{TCPSocket/[[readable]]}} is errored, [=reject=] [=this=].{{TCPSocket/[[closedPromise]]}}
+                      with a "{{NetworkError}}" {{DOMException}}.
+                  </ul>
+                </ul>
+            </ol>
         </ol>
 
       </section>
@@ -549,21 +554,32 @@
 
         <ol>
           <li>
-            If [=this=].{{TCPSocket/[[readable]]}} is errored:
-            <ul>
-              <li> 
-                [=Reject=] [=this=].{{TCPSocket/[[closedPromise]]}}
-                with a "{{NetworkError}}" {{DOMException}}.
-            </ul>
-          <li> 
-            If [=this=].{{TCPSocket/[[readable]]}} is closed:
-            <ul>
+            If [=this=].{{TCPSocket/[[readable]]}} is active, ignore the following steps.
+          <li>
+            Run the following steps [=in parallel=].
+            <ol>
               <li>
-                If [=this=].{{TCPSocket/[[writable]]}} is closed, [=resolve=] [=this=].{{TCPSocket/[[closedPromise]]}} with `undefined`.
+                Invoke the operating system to close the socket.
               <li>
-                If [=this=].{{TCPSocket/[[writable]]}} is errored, [=reject=] [=this=].{{TCPSocket/[[closedPromise]]}}
-                with a "{{NetworkError}}" {{DOMException}}.
-            </ul>
+                [=Queue a global task=] on the [=relevant global object=] of
+                [=this=] using the [=TCP socket task source=] to run the
+                following steps:
+                <ul>
+                  <li>
+                    If [=this=].{{TCPSocket/[[readable]]}} is errored,
+                    [=reject=] [=this=].{{TCPSocket/[[closedPromise]]}}
+                    with a "{{NetworkError}}" {{DOMException}}.
+                  <li> 
+                    If [=this=].{{TCPSocket/[[readable]]}} is closed:
+                    <ul>
+                      <li>
+                        If [=this=].{{TCPSocket/[[writable]]}} is closed, [=resolve=] [=this=].{{TCPSocket/[[closedPromise]]}} with `undefined`.
+                      <li>
+                        If [=this=].{{TCPSocket/[[writable]]}} is errored, [=reject=] [=this=].{{TCPSocket/[[closedPromise]]}}
+                      with a "{{NetworkError}}" {{DOMException}}.
+                  </ul>
+                </ul>
+            </ol>
         </ol>
 
       </section>
@@ -837,9 +853,6 @@
           <li>
             If |options|["{{UDPSocketOptions/receiveBufferSize}}"] is equal to 0, throw a {{TypeError}}.
           <li>
-            If |options|["{{UDPSocketOptions/readableStreamBufferSize}}"] is equal to 0, throw a {{TypeError}}.
-          
-          <li>
             Perform the following steps [=in parallel=].
             <ol>
               <li>
@@ -887,8 +900,6 @@
             dictionary UDPSocketOptions {
               [EnforceRange] unsigned long sendBufferSize;
               [EnforceRange] unsigned long receiveBufferSize;
-
-              [EnforceRange] unsigned short readableStreamBufferSize;
             };
           </pre>
 
@@ -906,12 +917,6 @@
             <dd>
               The requested receive buffer size, in bytes.
               If not specified, then platform-specific default value will be used.
-            </dd>
-            <dt>
-              <dfn>readableStreamBufferSize</dfn> member
-            </dt>
-            <dd>
-              The internal queue size for {{UDPSocket/[[readable]]}}.
             </dd>
           </dl>
         </section>
@@ -980,11 +985,10 @@
                             Let |message:UDPMessage| be a new {{UDPMessage}}.
                           <li>
                             Set |message|["{{UDPMessage/data}}"] to |chunk|.
-                          <!--
                           <li>
-                            Infer the origins of the received UDP packet and populate
-                            |message|["{{UDPMessage/remoteAddress}}"] and |message|["{{UDPMessage/remotePort}}"] accordingly. 
-                          -->
+                            Set |message|["{{UDPMessage/remoteAddress}}"] to the source address of the packet.
+                          <li>
+                            Set |message|["{{UDPMessage/remotePort}}"] to the source port of the packet.
                           <li>
                             Invoke [=ReadableStream/enqueue=] on
                             [=this=].{{UDPSocket/[[readable]]}} with |message|.
@@ -1030,7 +1034,7 @@
             <a href="https://streams.spec.whatwg.org/#readablestream-set-up-cancelalgorithm">cancelAlgorithm</a>
             set to |cancelAlgorithm|,
             <a href="https://streams.spec.whatwg.org/#readablestream-set-up-highwatermark">highWaterMark</a>
-            set to [=this=].{{UDPSocketOptions/readableStreamBufferSize}}.
+            set to an implementation-defined value.
           <li>
             Set [=this=].{{UDPSocket/[[readable]]}} to |stream|.
         </ol>
@@ -1039,19 +1043,34 @@
 
         <ol>
           <li>
-            If [=this=].{{UDPSocket/[[writable]]}} is errored:
-            <ul>
-              <li> 
-                [=Reject=] [=this=].{{UDPSocket/[[closedPromise]]}}.
-            </ul>
-          <li> 
-            If [=this=].{{UDPSocket/[[writable]]}} is closed:
-            <ul>
+            If [=this=].{{UDPSocket/[[writable]]}} is active, ignore the following steps.
+          <li>
+            Run the following steps [=in parallel=].
+            <ol>
               <li>
-                If [=this=].{{UDPSocket/[[readable]]}} is closed, [=resolve=] [=this=].{{UDPSocket/[[closedPromise]]}} with `undefined`.
+                Invoke the operating system to close the socket.
               <li>
-                If [=this=].{{UDPSocket/[[readable]]}} is errored, [=reject=] [=this=].{{UDPSocket/[[closedPromise]]}}.
-            </ul>
+                [=Queue a global task=] on the [=relevant global object=] of
+                [=this=] using the [=UDP socket task source=] to run the
+                following steps:
+                <ul>
+                  <li>
+                    If [=this=].{{UDPSocket/[[writable]]}} is errored,
+                    [=reject=] [=this=].{{UDPSocket/[[closedPromise]]}}
+                    with a "{{NetworkError}}" {{DOMException}}.
+                  <li>
+                    If [=this=].{{UDPSocket/[[writable]]}} is closed:
+                    <ul>
+                      <li>
+                        If [=this=].{{UDPSocket/[[readable]]}} is closed,
+                        [=resolve=] [=this=].{{UDPSocket/[[closedPromise]]}} with `undefined`.
+                      <li>
+                        If [=this=].{{UDPSocket/[[readable]]}} is errored,
+                        [=reject=] [=this=].{{UDPSocket/[[closedPromise]]}}
+                        with a "{{NetworkError}}" {{DOMException}}.
+                  </ul>
+                </ul>
+            </ol>
         </ol>
 
         <section data-dfn-for="UDPMessage">
@@ -1061,10 +1080,8 @@
           <pre class="idl">
             dictionary UDPMessage {
               BufferSource   data;
-              <!--
               DOMString      remoteAddress;
               unsigned short remotePort;
-              -->
             };
           </pre>
 
@@ -1078,25 +1095,23 @@
                 Note that for {{UDPSocket/[[readable]]}} the underlying type is always {{Uint8Array}}.
               </div>
             </dd>
-            <!--
             <dt>
               <dfn>remoteAddress</dfn> member
             </dt>
             <dd>
-              The remote address where the message came from / where the message should be sent.
-              <div class="note">
-                The only current implementation (Chromium) ignores this parameter when writing.
-                When reading, is always equal to [=this=].{{UDPSocket/[[openedPromise]]}}["{{UDPSocketOpenInfo/remoteAddress}}"].
-              </div>
-            </dd>
+              The remote address where the message came from.
+           </dd>
             <dt>
               <dfn>remotePort</dfn> member
             </dt>
             <dd>
-              The remote port where the message came from / where the message should be sent.
-              Currently has no effect on {{UDPSocket/[[writable]]}} and is always equal to {{UDPSocketOpenInfo/remotePort}} on {{UDPSocketOpenInfo/readable}}.
+              The remote port where the message came from.
             </dd>
-            -->
+            <div class="note">
+              This spec currently only covers the case of "connected" UDP sockets
+              which are supposed to exchange packets with one address specified in the constructor.
+              For this reason {{UDPSocket/[[writable]]}} doesn't support sending packets to arbitrary {{UDPMessage/remoteAddress}}/{{UDPMessage/remotePort}}.
+            </div>
           </dl>
 
         </section>
@@ -1275,21 +1290,33 @@
 
         <ol>
           <li>
-            If [=this=].{{UDPSocket/[[readable]]}} is errored:
-            <ul>
-              <li> 
-                [=Reject=] [=this=].{{UDPSocket/[[closedPromise]]}}
-                with a "{{NetworkError}}" {{DOMException}}.
-            </ul>
-          <li> 
-            If [=this=].{{UDPSocket/[[readable]]}} is closed:
-            <ul>
+            If [=this=].{{UDPSocket/[[readable]]}} is active, ignore the following steps.
+          <li>
+            Run the following steps [=in parallel=].
+            <ol>
               <li>
-                If [=this=].{{UDPSocket/[[writable]]}} is closed, [=resolve=] [=this=].{{UDPSocket/[[closedPromise]]}} with `undefined`.
+                Invoke the operating system to close the socket.
               <li>
-                If [=this=].{{UDPSocket/[[writable]]}} is errored, [=reject=] [=this=].{{UDPSocket/[[closedPromise]]}} 
-                with a "{{NetworkError}}" {{DOMException}}.
-            </ul>
+                [=Queue a global task=] on the [=relevant global object=] of
+                [=this=] using the [=UDP socket task source=] to run the
+                following steps:
+                <ul>
+                  <li>
+                    If [=this=].{{UDPSocket/[[readable]]}} is errored,
+                    [=reject=] [=this=].{{UDPSocket/[[closedPromise]]}}
+                    with a "{{NetworkError}}" {{DOMException}}.
+                  <li> 
+                    If [=this=].{{UDPSocket/[[readable]]}} is closed:
+                    <ul>
+                      <li>
+                        If [=this=].{{UDPSocket/[[writable]]}} is closed,
+                        [=resolve=] [=this=].{{UDPSocket/[[closedPromise]]}} with `undefined`.
+                      <li>
+                        If [=this=].{{TCPSocket/[[writable]]}} is errored,
+                        [=reject=] [=this=].{{UDPSocket/[[closedPromise]]}} with a "{{NetworkError}}" {{DOMException}}.
+                  </ul>
+                </ul>
+            </ol>
         </ol>
 
       </section>
