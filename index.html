@@ -288,41 +288,48 @@
           <li>
             Let |stream:ReadableStream| be a [=new=] {{ReadableStream}}.
           <li>
-            Let |pullAlgorithm| be the following steps [=in parallel=]:
+            Let |pullAlgorithm| be the following steps:
             <ol>
               <li>
-                Invoke the operating system to read a tcp packet from the socket, placing the result in the [=byte sequence=] |bytes|.
+                Run the following steps in parallel:
+              <ol>
+                <li>
+                  Invoke the operating system to read a tcp packet from the socket, placing the result in the [=byte sequence=] |bytes|.
+                <li>
+                  [=Queue a global task=] on the [=relevant global object=] of
+                  [=this=] using the [=TCP socket task source=] to run the
+                  following steps:
+                  <ol>
+                    <li>
+                      If FIN packet was received, run the following steps:
+                      <ol>
+                        <li>
+                          Invoke [=ReadableStream/close=] on [=this=].{{TCPSocket/[[readable]]}}.
+                        <li>
+                          Invoke the steps to [=handle closing the TCP readable stream=].
+                      </ol>
+                    <li>
+                      If no errors were encountered run the following steps:
+                      <ol>
+                        <li>
+                          Let |buffer| be a [=new=] {{ArrayBuffer}} created from |bytes|.
+                        <li>
+                          Let |chunk| be a [=new=] {{Uint8Array}} view over |buffer|,
+                          who's length is the length of |bytes|.
+                        <li>
+                          Invoke [=ReadableStream/enqueue=] on
+                          [=this=].{{TCPSocket/[[readable]]}} with |chunk|.
+                      </ol>
+                    <li>
+                      If an operating system error was encountered, invoke
+                      [=ReadableStream/error=] on [=this=].{{TCPSocket/[[readable]]}} with
+                      a "{{NetworkError}}" {{DOMException}} and invoke the steps
+                      to [=handle closing the TCP readable stream=].
+                </ol>
               <li>
-                [=Queue a global task=] on the [=relevant global object=] of
-                [=this=] using the [=TCP socket task source=] to run the
-                following steps:
-                <ol>
-                  <li>
-                    If FIN packet was received, run the following steps:
-                    <ol>
-                      <li>
-                        Invoke [=ReadableStream/close=] on [=this=].{{TCPSocket/[[readable]]}}.
-                      <li>
-                        Invoke the steps to [=handle closing the TCP readable stream=].
-                    </ol>
-                  <li>
-                    If no errors were encountered run the following steps:
-                    <ol>
-                      <li>
-                        Let |buffer| be a [=new=] {{ArrayBuffer}} created from |bytes|.
-                      <li>
-                        Let |chunk| be a [=new=] {{Uint8Array}} view over |buffer|,
-                        who's length is the length of |bytes|.
-                      <li>
-                        Invoke [=ReadableStream/enqueue=] on
-                        [=this=].{{TCPSocket/[[readable]]}} with |chunk|.
-                    </ol>
-                  <li>
-                    If an operating system error was encountered, invoke
-                    [=ReadableStream/error=] on [=this=].{{TCPSocket/[[readable]]}} with
-                    a "{{NetworkError}}" {{DOMException}} and invoke the steps
-                    to [=handle closing the TCP readable stream=].
+                Return [=a promise resolved with=] `undefined`.
             </ol>
+            
           <li>
             Let |cancelAlgorithm| be the following steps:
             <ol>
