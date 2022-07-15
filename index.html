@@ -119,17 +119,24 @@
         The {{TCPSocket/constructor()}} steps are:
 
         <ol>
-          <li>If [=this=]'s [=relevant global object=]'s [=associated Document=] is
+          <li>
+            If [=this=]'s [=relevant global object=]'s [=associated Document=] is
         not [=allowed to use=] the [=policy-controlled feature=] named "[=policy-controlled feature/direct-sockets=]", throw a
         "{{NotAllowedError}}" {{DOMException}}.
           <!--
-          <li>If only one of |options|["{{TCPSocketOptions/localAddress}}"] or |options|["{{TCPSocketOptions/localPort}}"] is specified, throw a {{TypeError}}.
+          <li>
+            If only one of |options|["{{TCPSocketOptions/localAddress}}"] or |options|["{{TCPSocketOptions/localPort}}"] is specified, throw a {{TypeError}}.
           -->
-          <li>If only one of |options|["{{TCPSocketOptions/keepAlive}}"] or |options|["{{TCPSocketOptions/keepAliveDelay}}"] is specified, throw a {{TypeError}}.
-          <li>If |options|["{{TCPSocketOptions/keepAliveDelay}}"] is less than 1,000, throw a {{TypeError}}.
-          <li>If |options|["{{TCPSocketOptions/sendBufferSize}}"] is equal to 0, throw a {{TypeError}}.
-          <li>If |options|["{{TCPSocketOptions/receiveBufferSize}}"] is equal to 0, throw a {{TypeError}}.
-          <li>Perform the following steps [=in parallel=].
+          <li>
+            If only one of |options|["{{TCPSocketOptions/keepAlive}}"] or |options|["{{TCPSocketOptions/keepAliveDelay}}"] is specified, throw a {{TypeError}}.
+          <li>
+            If |options|["{{TCPSocketOptions/keepAliveDelay}}"] is less than 1,000, throw a {{TypeError}}.
+          <li>
+            If |options|["{{TCPSocketOptions/sendBufferSize}}"] is equal to 0, throw a {{TypeError}}.
+          <li>
+            If |options|["{{TCPSocketOptions/receiveBufferSize}}"] is equal to 0, throw a {{TypeError}}.
+          <li>
+            Perform the following steps [=in parallel=].
             <ol>
               <li>
                 Invoke the operating system to open the TCP socket using the given |remoteAddress| and |remotePort| and the 
@@ -139,23 +146,32 @@
                 [=this=] using the [=TCP socket task source=] to run the
                 following steps:
                 <ol>
-                  <li>[=Reject=] the {{TCPSocket/[[openedPromise]]}} with a "{{NetworkError}}" {{DOMException}}.
-                  <li>[=Reject=] the {{TCPSocket/[[closedPromise]]}} with a "{{NetworkError}}" {{DOMException}}.
+                  <li>
+                    [=Reject=] the {{TCPSocket/[[openedPromise]]}} with a "{{NetworkError}}" {{DOMException}}.
+                  <li>
+                    [=Reject=] the {{TCPSocket/[[closedPromise]]}} with a "{{NetworkError}}" {{DOMException}}.
                 </ol>
               <li>
                 On success, [=queue a global task=] on the [=relevant global object=] of
                 [=this=] using the [=TCP socket task source=] to run the
                 following steps:
                 <ol>
-                  <li>[=initialize tcp readable stream|Initialize=] {{TCPSocket/[[readable]]}}.
-                  <li>[=initialize tcp writable stream|Initialize=] {{TCPSocket/[[writable]]}}.
-                  <li>Let |conn:TCPSocketOpenInfo| be a new {{TCPSocketOpenInfo}}.
-                  <li>Set |openInfo|["{{TCPSocketOpenInfo/readable}}"] to [=this=].{{TCPSocket/[[readable]]}}.
-                  <li>Set |openInfo|["{{TCPSocketOpenInfo/writable}}"] to [=this=].{{TCPSocket/[[writable]]}}.
-                  <li>Populate the remaining fields of |openInfo| using the information provided by the operating system:
+                  <li>
+                    [=initialize tcp readable stream|Initialize=] {{TCPSocket/[[readable]]}}.
+                  <li>
+                    [=initialize tcp writable stream|Initialize=] {{TCPSocket/[[writable]]}}.
+                  <li>
+                    Let |openInfo:TCPSocketOpenInfo| be a new {{TCPSocketOpenInfo}}.
+                  <li>
+                    Set |openInfo|["{{TCPSocketOpenInfo/readable}}"] to [=this=].{{TCPSocket/[[readable]]}}.
+                  <li>
+                    Set |openInfo|["{{TCPSocketOpenInfo/writable}}"] to [=this=].{{TCPSocket/[[writable]]}}.
+                  <li>
+                    Populate the remaining fields of |openInfo| using the information provided by the operating system:
                       |openInfo|["{{TCPSocketOpenInfo/remoteAddress}}"], |openInfo|["{{TCPSocketOpenInfo/remotePort}}"],
                       |openInfo|["{{TCPSocketOpenInfo/localAddress}}"] and |openInfo|["{{TCPSocketOpenInfo/localPort}}"].
-                  <li>Resolve [=this=].{{TCPSocket/[[openedPromise]]}} with |openInfo|.
+                  <li>
+                    [=Resolve=] [=this=].{{TCPSocket/[[openedPromise]]}} with |openInfo|.
                 </ol>
             </ol>
         </ol>
@@ -185,12 +201,14 @@
             </dt>
             <dd>
               The requested send buffer size, in bytes.
+              If not specified, then platform-specific default value will be used.
             </dd>
             <dt>
               <dfn>receiveBufferSize</dfn> member
             </dt>
             <dd>
               The requested receive buffer size, in bytes.
+              If not specified, then platform-specific default value will be used.
             </dd>
             <!--
             <dt>
@@ -267,7 +285,8 @@
         The steps to <dfn data-lt="initialize tcp readable stream">initialize the TCP readable stream</dfn> are:
 
         <ol>
-          <li>Let |stream:ReadableStream| be a [=new=] {{ReadableStream}}.
+          <li>
+            Let |stream:ReadableStream| be a [=new=] {{ReadableStream}}.
           <li>
             Let |pullAlgorithm| be the following steps [=in parallel=]:
             <ol>
@@ -392,13 +411,17 @@
         The steps to <dfn data-lt="initialize tcp writable stream">initialize the TCP writable stream</dfn> are:
 
         <ol>
-          <li>Let |stream:WritableStream| be a [=new=] {{WritableStream}}.
-          <li>Let |signal:AbortSignal| be |stream|'s [=WritableStream/signal=].
+          <li>
+            Let |stream:WritableStream| be a [=new=] {{WritableStream}}.
+          <li>
+            Let |signal:AbortSignal| be |stream|'s [=WritableStream/signal=].
           <li>
             Let |writeAlgorithm| be the following steps, given |chunk|:
             <ol>
-              <li>Let |promise:Promise| be [=a new promise=].
-              <li>Assert: |signal| is not [=AbortSignal/aborted=].
+              <li>
+                Let |promise:Promise| be [=a new promise=].
+              <li>
+                Assert: |signal| is not [=AbortSignal/aborted=].
               <li>
                 If |chunk| cannot be [=converted to an IDL value=] of type
                 {{BufferSource}}, reject |promise| with a {{TypeError}} and return
@@ -805,40 +828,54 @@
         The {{UDPSocket/constructor()}} steps are:
 
         <ol>
-          <li>If [=this=]'s [=relevant global object=]'s [=associated Document=] is
+          <li>
+            If [=this=]'s [=relevant global object=]'s [=associated Document=] is
         not [=allowed to use=] the [=policy-controlled feature=] named "[=policy-controlled feature/direct-sockets=]", throw a
         "{{NotAllowedError}}" {{DOMException}}.
-          <li>If |options|["{{UDPSocketOptions/sendBufferSize}}"] is equal to 0, throw a {{TypeError}}.
-          <li>If |options|["{{UDPSocketOptions/receiveBufferSize}}"] is equal to 0, throw a {{TypeError}}.
-          <li>If |options|["{{UDPSocketOptions/readableStreamBufferSize}}"] is equal to 0, throw a {{TypeError}}.
+          <li>
+            If |options|["{{UDPSocketOptions/sendBufferSize}}"] is equal to 0, throw a {{TypeError}}.
+          <li>
+            If |options|["{{UDPSocketOptions/receiveBufferSize}}"] is equal to 0, throw a {{TypeError}}.
+          <li>
+            If |options|["{{UDPSocketOptions/readableStreamBufferSize}}"] is equal to 0, throw a {{TypeError}}.
           
-          <li>Perform the following steps [=in parallel=].
+          <li>
+            Perform the following steps [=in parallel=].
             <ol>
               <li>
                 Invoke the operating system to open the UDP socket using the given |remoteAddress| and |remotePort| and the 
-                connection parameters (or their defaults) specified in |options|.
+                parameters (or their defaults) specified in |options|.
               <li>
                 If this fails for any reason, [=queue a global task=] on the [=relevant global object=] of
                 [=this=] using the [=UDP socket task source=] to run the
                 following steps:
                 <ol>
-                  <li>[=Reject=] the {{UDPSocket/[[openedPromise]]}} with a "{{NetworkError}}" {{DOMException}}.
-                  <li>[=Reject=] the {{UDPSocket/[[closedPromise]]}} with a "{{NetworkError}}" {{DOMException}}.
+                  <li>
+                    [=Reject=] the {{UDPSocket/[[openedPromise]]}} with a "{{NetworkError}}" {{DOMException}}.
+                  <li>
+                    [=Reject=] the {{UDPSocket/[[closedPromise]]}} with a "{{NetworkError}}" {{DOMException}}.
                 </ol>
               <li>
                 On success, [=queue a global task=] on the [=relevant global object=] of
                 [=this=] using the [=UDP socket task source=] to run the
                 following steps:
                 <ol>
-                  <li>[=initialize udp readable stream|Initialize=] {{UDPSocket/[[readable]]}}.
-                  <li>[=initialize udp writable stream|Initialize=] {{UDPSocket/[[writable]]}}.
-                  <li>Let |conn:UDPSocketOpenInfo| be a new {{UDPSocketOpenInfo}}.
-                  <li>Set |openInfo|["{{UDPSocketOpenInfo/readable}}"] to [=this=].{{UDPSocket/[[readable]]}}.
-                  <li>Set |openInfo|["{{UDPSocketOpenInfo/writable}}"] to [=this=].{{UDPSocket/[[writable]]}}.
-                  <li>Populate the remaining fields of |openInfo| using the information provided by the operating system:
+                  <li>
+                    [=initialize udp readable stream|Initialize=] {{UDPSocket/[[readable]]}}.
+                  <li>
+                    [=initialize udp writable stream|Initialize=] {{UDPSocket/[[writable]]}}.
+                  <li>
+                    Let |openInfo:UDPSocketOpenInfo| be a new {{UDPSocketOpenInfo}}.
+                  <li>
+                    Set |openInfo|["{{UDPSocketOpenInfo/readable}}"] to [=this=].{{UDPSocket/[[readable]]}}.
+                  <li>
+                    Set |openInfo|["{{UDPSocketOpenInfo/writable}}"] to [=this=].{{UDPSocket/[[writable]]}}.
+                  <li>
+                    Populate the remaining fields of |openInfo| using the information provided by the operating system:
                       |openInfo|["{{UDPSocketOpenInfo/remoteAddress}}"], |openInfo|["{{UDPSocketOpenInfo/remotePort}}"],
                       |openInfo|["{{UDPSocketOpenInfo/localAddress}}"] and |openInfo|["{{UDPSocketOpenInfo/localPort}}"].
-                  <li>Resolve [=this=].{{UDPSocket/[[openedPromise]]}} with |openInfo|.
+                  <li>
+                    Resolve [=this=].{{UDPSocket/[[openedPromise]]}} with |openInfo|.
                 </ol>
             </ol>
         </ol>
@@ -861,12 +898,14 @@
             </dt>
             <dd>
               The requested send buffer size, in bytes.
+              If not specified, then platform-specific default value will be used.
             </dd>
             <dt>
               <dfn>receiveBufferSize</dfn> member
             </dt>
             <dd>
               The requested receive buffer size, in bytes.
+              If not specified, then platform-specific default value will be used.
             </dd>
             <dt>
               <dfn>readableStreamBufferSize</dfn> member
@@ -907,7 +946,8 @@
         The steps to <dfn data-lt="initialize udp readable stream">initialize the UDP readable stream</dfn> are:
 
         <ol>
-          <li>Let |stream:ReadableStream| be a [=new=] {{ReadableStream}}.
+          <li>
+            Let |stream:ReadableStream| be a [=new=] {{ReadableStream}}.
           <li>
             Let |pullAlgorithm| be the following steps:
             <ol>
@@ -920,16 +960,17 @@
                 Run the following steps in parallel:
                 <ol>
                   <li>
-                    Invoke the operating system to provide us |desiredSize| UDP packets from the socket.
+                    Invoke the operating system to provide up to |desiredSize| UDP packets from the socket.
                   <li>
                     [=Queue a global task=] on the [=relevant global object=] of
                     [=this=] using the [=UDP socket task source=] to run the
                     following steps for each received packet:
                     <ol>
                       <li>
-                        If no errors were encountered run the following steps:
+                        If no errors were encountered, for each packet received run the following steps:
                         <ol>
-                          <li>Let |bytes| be a [=byte sequence=] containing the packet data. 
+                          <li>
+                            Let |bytes| be a [=byte sequence=] containing the packet payload. 
                           <li>
                             Let |buffer| be a [=new=] {{ArrayBuffer}} created from |bytes|.
                           <li>
@@ -990,7 +1031,8 @@
             set to |cancelAlgorithm|,
             <a href="https://streams.spec.whatwg.org/#readablestream-set-up-highwatermark">highWaterMark</a>
             set to [=this=].{{UDPSocketOptions/readableStreamBufferSize}}.
-          <li>Set [=this=].{{UDPSocket/[[readable]]}} to |stream|.
+          <li>
+            Set [=this=].{{UDPSocket/[[readable]]}} to |stream|.
         </ol>
 
         To <dfn>handle closing the UDP readable stream</dfn> perform the following steps:
@@ -1306,13 +1348,13 @@
               <dfn>remoteAddress</dfn> member
             </dt>
             <dd>
-              Resolved remote IP address that the socket is connected to.
+              Resolved remote IP address that the socket is communicating with.
             </dd>
             <dt>
               <dfn>remotePort</dfn> member
             </dt>
             <dd>
-              Remote port that the socket is connected to.
+              Remote port that the socket is communicating with.
             </dd>
             <dt>
               <dfn>localAddress</dfn> member
