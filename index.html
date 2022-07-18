@@ -552,13 +552,13 @@
                 following steps:
                 <ul>
                   <li>
-                    If [=this=].{{TCPSocket/[[writable]]}} is errored,
-                    [=reject=] [=this=].{{TCPSocket/[[closedPromise]]}}
-                    with [=this=].{{TCPSocket/[[writable]]}}.`[[storedPromise]]`.
-                  <li>
-                    Otherwise, if [=this=].{{TCPSocket/[[readable]]}} is errored,
+                    If [=this=].{{TCPSocket/[[readable]]}} is errored,
                     [=reject=] [=this=].{{TCPSocket/[[closedPromise]]}}
                     with [=this=].{{TCPSocket/[[readable]]}}.`[[storedPromise]]`.
+                  <li>
+                    Otherwise, if [=this=].{{TCPSocket/[[writable]]}} is errored,
+                    [=reject=] [=this=].{{TCPSocket/[[closedPromise]]}}
+                    with [=this=].{{TCPSocket/[[writable]]}}.`[[storedPromise]]`.
                   <li>
                     Otherwise, [=resolve=] [=this=].{{TCPSocket/[[closedPromise]]}} with `undefined`.
                 </ul>
@@ -1229,13 +1229,13 @@
                 following steps:
                 <ul>
                   <li>
-                    If [=this=].{{UDPSocket/[[writable]]}} is errored,
-                    [=reject=] [=this=].{{UDPSocket/[[closedPromise]]}}
-                    with [=this=].{{UDPSocket/[[writable]]}}.`[[storedPromise]]`.
-                  <li>
-                    Otherwise, if [=this=].{{UDPSocket/[[readable]]}} is errored,
+                    If [=this=].{{UDPSocket/[[readable]]}} is errored,
                     [=reject=] [=this=].{{UDPSocket/[[closedPromise]]}}
                     with [=this=].{{UDPSocket/[[readable]]}}.`[[storedPromise]]`.
+                  <li>
+                    Otherwise, if [=this=].{{UDPSocket/[[writable]]}} is errored,
+                    [=reject=] [=this=].{{UDPSocket/[[closedPromise]]}}
+                    with [=this=].{{UDPSocket/[[writable]]}}.`[[storedPromise]]`.
                   <li> 
                     Otherwise, [=resolve=] [=this=].{{UDPSocket/[[closedPromise]]}} with `undefined`.
                 </ul>
