@@ -128,8 +128,6 @@
             If only one of |options|["{{TCPSocketOptions/localAddress}}"] or |options|["{{TCPSocketOptions/localPort}}"] is specified, throw a {{TypeError}}.
           -->
           <li>
-            If only one of |options|["{{TCPSocketOptions/keepAlive}}"] or |options|["{{TCPSocketOptions/keepAliveDelay}}"] is specified, throw a {{TypeError}}.
-          <li>
             If |options|["{{TCPSocketOptions/keepAliveDelay}}"] is less than 1,000, throw a {{TypeError}}.
           <li>
             If |options|["{{TCPSocketOptions/sendBufferSize}}"] is equal to 0, throw a {{TypeError}}.
@@ -183,14 +181,11 @@
             dictionary TCPSocketOptions {
               [EnforceRange] unsigned long sendBufferSize;
               [EnforceRange] unsigned long receiveBufferSize;
-
               <!--
               DOMString localAddress;
               [EnforceRange] unsigned short localPort;
               -->
-
               boolean noDelay = false;
-              boolean keepAlive = false;
               [EnforceRange] unsigned long keepAliveDelay;
             };
           </pre>
@@ -240,17 +235,14 @@
               algorithm</a>.
             </dd>
             <dt>
-              <dfn>keepAlive</dfn> member
-            </dt>
-            <dd>
-              Enables/disables TCP Keep-Alive by setting `SO_KEEPALIVE` option on the socket. 
-            </dd>
-            <dt>
               <dfn>keepAliveDelay</dfn> member
             </dt>
             <dd>
-              Specifies the Keep-Alive ping delay in milliseconds. Must be specified only if
-              {{TCPSocketOptions/keepAlive}} is set to `true`.
+              Enables TCP Keep-Alive by setting `SO_KEEPALIVE` option on the socket equal
+              to the specified Keep-Alive ping delay in milliseconds.
+              <div class="note">
+                Keep-Alive is disabled by default.
+              </div>
             </dd>
           </dl>
 
@@ -334,19 +326,9 @@
             Let |cancelAlgorithm| be the following steps:
             <ol>
               <li>
-                Let |promise:Promise| be [=a new Promise=].
+                Invoke the steps to [=handle closing the TCP readable stream=].
               <li>
-                [=Queue a global task=] on the [=relevant global object=] of
-                [=this=] using the [=TCP socket task source=] to run the
-                following steps:
-                <ol>
-                  <li>
-                    Invoke the steps to [=handle closing the TCP readable stream=].
-                  <li>
-                    [=Resolve=] |promise| with `undefined`.
-                </ol>
-              <li>
-                Return |promise|.
+                Return [=a promise resolved with=] `undefined`.
             </ol>
           <li>
             [=ReadableStream/Set up=] |stream| with
@@ -363,7 +345,7 @@
 
         <ol>
           <li>
-            If [=this=].{{TCPSocket/[[writable]]}} is active, ignore the following steps.
+            If [=this=].{{TCPSocket/[[writable]]}} is active, abort these steps.
           <li>
             Run the following steps [=in parallel=].
             <ol>
@@ -383,7 +365,7 @@
                     [=reject=] [=this=].{{TCPSocket/[[closedPromise]]}}
                     with [=this=].{{TCPSocket/[[readable]]}}.`[[storedPromise]]`.
                   <li>
-                    Otherwise [=resolve=] [=this=].{{TCPSocket/[[closedPromise]]}} with `undefined`.
+                    Otherwise, [=resolve=] [=this=].{{TCPSocket/[[closedPromise]]}} with `undefined`.
                 </ul>
             </ol>
         </ol>
@@ -558,7 +540,7 @@
 
         <ol>
           <li>
-            If [=this=].{{TCPSocket/[[readable]]}} is active, ignore the following steps.
+            If [=this=].{{TCPSocket/[[readable]]}} is active, abort these steps.
           <li>
             Run the following steps [=in parallel=].
             <ol>
@@ -578,7 +560,7 @@
                     [=reject=] [=this=].{{TCPSocket/[[closedPromise]]}}
                     with [=this=].{{TCPSocket/[[readable]]}}.`[[storedPromise]]`.
                   <li>
-                    Otherwise [=resolve=] [=this=].{{TCPSocket/[[closedPromise]]}} with `undefined`.
+                    Otherwise, [=resolve=] [=this=].{{TCPSocket/[[closedPromise]]}} with `undefined`.
                 </ul>
             </ol>
         </ol>
@@ -1008,25 +990,9 @@
             Let |cancelAlgorithm| be the following steps:
             <ol>
               <li>
-                Let |promise:Promise| be [=a new Promise=].
+                Invoke the steps to [=handle closing the UDP readable stream=].
               <li>
-                Run the following steps [=in parallel=]:
-                <ol>
-                  <li>
-                    Invoke the operating system to close the socket.
-                  <li>
-                    [=Queue a global task=] on the [=relevant global object=] of
-                    [=this=] using the [=UDP socket task source=] to run the
-                    following steps:
-                    <ol>
-                      <li>
-                        Invoke the steps to [=handle closing the UDP readable stream=].
-                      <li>
-                        [=Resolve=] |promise| with `undefined`.
-                    </ol>
-                </ol>
-              <li>
-                Return |promise|.
+                Return [=a promise resolved with=] `undefined`.
             </ol>
           <li>
             [=ReadableStream/Set up=] |stream| with
@@ -1044,7 +1010,7 @@
 
         <ol>
           <li>
-            If [=this=].{{UDPSocket/[[writable]]}} is active, ignore the following steps.
+            If [=this=].{{UDPSocket/[[writable]]}} is active, abort these steps.
           <li>
             Run the following steps [=in parallel=].
             <ol>
@@ -1064,7 +1030,7 @@
                     [=reject=] [=this=].{{UDPSocket/[[closedPromise]]}}
                     with [=this=].{{UDPSocket/[[readable]]}}.`[[storedPromise]]`.
                   <li>
-                    Otherwise [=resolve=] [=this=].{{UDPSocket/[[closedPromise]]}} with `undefined`.
+                    Otherwise, [=resolve=] [=this=].{{UDPSocket/[[closedPromise]]}} with `undefined`.
                 </ul>
             </ol>
         </ol>
@@ -1213,52 +1179,17 @@
             Let |abortAlgorithm| be the following steps:
             <ol>
               <li>
-                Let |promise| be [=a new promise=].
+                Invoke the steps to [=handle closing the UDP writable stream=].
               <li>
-                Run the following steps [=in parallel=]:
-                <ol>
-                  <li>
-                    Invoke the operating system to shutdown the socket for writing.
-                  <li>
-                    [=Queue a global task=] on the [=relevant global object=] of
-                    [=this=] using the [=UDP socket task source=] to run the
-                    following steps:
-                    <ol>
-                      <li>
-                        Invoke the steps to [=handle closing the UDP writable stream=].
-                      <li>
-                        [=Resolve=] |promise| with `undefined`.
-                    </ol>
-                </ol>
-              <li>
-                Return |promise|.
+                Return [=a promise resolved with=] `undefined`.
             </ol>
           <li>
             Let |closeAlgorithm| be the following steps:
             <ol>
               <li>
-                Let |promise| be [=a new promise=].
+                Invoke the steps to [=handle closing the UDP writable stream=].
               <li>
-                Run the following steps [=in parallel=].
-                <ol>
-                  <li>
-                    Invoke the operating system to shutdown the socket for writing.
-                  <li>
-                    [=Queue a global task=] on the [=relevant global object=] of
-                    [=this=] using the [=UDP socket task source=] to run the
-                    following steps:
-                    <ol>
-                      <li>
-                        Invoke the steps to [=handle closing the UDP writable stream=].
-                      <li>
-                        If |signal| is [=AbortSignal/aborted=], [=reject=] |promise|
-                        with |signal|'s [=AbortSignal/abort reason=].
-                      <li>
-                        [=Resolve=] |promise| with `undefined`.
-                    </ol>
-                </ol>
-              <li>
-                Return |promise|.
+                Return [=a promise resolved with=] `undefined`.
             </ol>
           <li>
             [=WritableStream/Set up=] |stream| with
@@ -1286,7 +1217,7 @@
 
         <ol>
           <li>
-            If [=this=].{{UDPSocket/[[readable]]}} is active, ignore the following steps.
+            If [=this=].{{UDPSocket/[[readable]]}} is active, abort these steps.
           <li>
             Run the following steps [=in parallel=].
             <ol>
