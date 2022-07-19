@@ -283,10 +283,15 @@
             Let |pullAlgorithm| be the following steps:
             <ol>
               <li>
+                Let |desiredSize| be the
+                <a href="https://streams.spec.whatwg.org/#desired-size-to-fill-a-streams-internal-queue">desired size</a>
+                of [=this=].{{TCPSocket/[[readable]]}}'s
+                <a href="https://streams.spec.whatwg.org/#internal-queues">internal queue</a>.
+              <li>
                 Run the following steps in parallel:
               <ol>
                 <li>
-                  Invoke the operating system to read a tcp packet from the socket, placing the result in the [=byte sequence=] |bytes|.
+                  Invoke the operating system to read up to |desiredSize| bytes from the socket, placing the result in the [=byte sequence=] |bytes|.
                 <li>
                   [=Queue a global task=] on the [=relevant global object=] of
                   [=this=] using the [=TCP socket task source=] to run the
@@ -1151,17 +1156,20 @@
                 |promise|. Otherwise, save the result of the conversion in
                 |message|.
               <li>
+                If either |message|["{{UDPMessage/remoteAddress}}"]
+                or |message|["{{UDPMessage/remotePort}}"] is specified,
+                reject |promise| with a {{TypeError}} and return |promise|.
+                <div class="note">
+                  The |message|["{{UDPMessage/remoteAddress}}"]
+                  and |message|["{{UDPMessage/remotePort}}"]
+                  currently have no effect on sending packets since
+                  the UDP socket is only allowed to operate in the connected mode.
+                </div>
+              <li>
                 [=In parallel=], run the following steps:
                 <ol>
                   <li>
                     Invoke the operating system to send |message|["{{UDPMessage/data}}"] to the socket.
-
-                    <!--
-                    <div class="note">
-                      The |message|["{{UDPMessage/remoteAddress}}"] and |message|["{{UDPMessage/remotePort}}"]
-                      currently have no effect on sending packets since the UDP socket is only allowed to operate in the connected mode.
-                    </div>
-                    -->
 
                     <div class="note">
                       The operating system may return from this operation once
