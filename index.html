@@ -100,7 +100,7 @@
 
         <aside class="example">
           In order to communicate via TCP a socket connection must be requested first. The socket object constructor
-          allowes the site to specify the necessary parameters which control how data is transmitted and received.
+          allows the site to specify the necessary parameters which control how data is transmitted and received.
 
           <pre class="js">
             const socket = new TCPSocket(/*remoteAddress=*/, /*remotePort=*/, /*options=*/);
@@ -289,44 +289,45 @@
                 <a href="https://streams.spec.whatwg.org/#internal-queues">internal queue</a>.
               <li>
                 Run the following steps in parallel:
-              <ol>
-                <li>
-                  Invoke the operating system to read up to |desiredSize| bytes from the socket, placing the result in the [=byte sequence=] |bytes|.
-                <li>
-                  [=Queue a global task=] on the [=relevant global object=] of
-                  [=this=] using the [=TCP socket task source=] to run the
-                  following steps:
-                  <ol>
-                    <li>
-                      If the connection was closed gracefully, run the following steps:
-                      <ol>
-                        <li>
-                          Invoke [=ReadableStream/close=] on [=this=].{{TCPSocket/[[readable]]}}.
-                        <li>
-                          Invoke the steps to [=handle closing the TCP readable stream=].
-                      </ol>
-                      <div class="note">
-                        This is triggered by the peer sending a packet with the FIN flag set
-                        and is typically indicated by the operating system returning 0 bytes
-                        when asked for more data from the socket.
-                      </div>
-                    <li>
-                      If no errors were encountered run the following steps:
-                      <ol>
-                        <li>
-                          Let |buffer| be a [=new=] {{ArrayBuffer}} created from |bytes|.
-                        <li>
-                          Let |chunk| be a [=new=] {{Uint8Array}} view over |buffer|,
-                          who's length is the length of |bytes|.
-                        <li>
-                          Invoke [=ReadableStream/enqueue=] on
-                          [=this=].{{TCPSocket/[[readable]]}} with |chunk|.
-                      </ol>
-                    <li>
-                      If a network or operating system error was encountered, invoke
-                      [=ReadableStream/error=] on [=this=].{{TCPSocket/[[readable]]}} with
-                      a "{{NetworkError}}" {{DOMException}} and invoke the steps
-                      to [=handle closing the TCP readable stream=].
+                <ol>
+                  <li>
+                    Invoke the operating system to read up to |desiredSize| bytes from the socket, placing the result in the [=byte sequence=] |bytes|.
+                  <li>
+                    [=Queue a global task=] on the [=relevant global object=] of
+                    [=this=] using the [=TCP socket task source=] to run the
+                    following steps:
+                    <ol>
+                      <li>
+                        If the connection was closed gracefully, run the following steps:
+                        <ol>
+                          <li>
+                            Invoke [=ReadableStream/close=] on [=this=].{{TCPSocket/[[readable]]}}.
+                          <li>
+                            Invoke the steps to [=handle closing the TCP readable stream=].
+                        </ol>
+                        <div class="note">
+                          This is triggered by the peer sending a packet with the FIN flag set
+                          and is typically indicated by the operating system returning 0 bytes
+                          when asked for more data from the socket.
+                        </div>
+                      <li>
+                        If no errors were encountered run the following steps:
+                        <ol>
+                          <li>
+                            Let |buffer| be a [=new=] {{ArrayBuffer}} created from |bytes|.
+                          <li>
+                            Let |chunk| be a [=new=] {{Uint8Array}} view over |buffer|,
+                            who's length is the length of |bytes|.
+                          <li>
+                            Invoke [=ReadableStream/enqueue=] on
+                            [=this=].{{TCPSocket/[[readable]]}} with |chunk|.
+                        </ol>
+                      <li>
+                        If a network or operating system error was encountered, invoke
+                        [=ReadableStream/error=] on [=this=].{{TCPSocket/[[readable]]}} with
+                        a "{{NetworkError}}" {{DOMException}} and invoke the steps
+                        to [=handle closing the TCP readable stream=].
+                    </ol>
                 </ol>
               <li>
                 Return [=a promise resolved with=] `undefined`.
@@ -429,10 +430,13 @@
                 |promise|. Otherwise, save the result of the conversion in
                 |source:BufferSource|.
               <li>
+                [=Get a copy of the buffer source=] |source| and save the result in
+                |bytes|.
+              <li>
                 [=In parallel=], run the following steps:
                 <ol>
                   <li>
-                    Invoke the operating system to write |source| to the socket.
+                    Invoke the operating system to write |bytes| to the socket.
 
                     <div class="note">
                       The operating system may return from this operation once
@@ -815,7 +819,7 @@
 
         <aside class="example">
           In order to communicate via UDP a socket must be opened first. The socket object constructor
-          allowes the site to specify the necessary parameters which control how data is transmitted and received.
+          allows the site to specify the necessary parameters which control how data is transmitted and received.
 
           <pre class="js">
             const socket = new UDPSocket(/*remoteAddress=*/, /*remotePort=*/, /*options=*/);
@@ -1166,14 +1170,17 @@
                   the UDP socket is only allowed to operate in the connected mode.
                 </div>
               <li>
+                [=Get a copy of the buffer source=] |message|["{{UDPMessage/data}}"] and save the result in
+                |bytes|.
+              <li>
                 [=In parallel=], run the following steps:
                 <ol>
                   <li>
-                    Invoke the operating system to send |message|["{{UDPMessage/data}}"] to the socket.
+                    Invoke the operating system to send |bytes| to the socket.
 
                     <div class="note">
                       The operating system may return from this operation once
-                      |message|["{{UDPMessage/data}}"] has been queued for transmission rather than after it
+                      |bytes| has been queued for transmission rather than after it
                       has been transmitted.
                     </div>
                   <li>
