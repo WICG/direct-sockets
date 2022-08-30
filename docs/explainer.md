@@ -170,10 +170,28 @@ To simplify security analysis, an API for listening for incoming connections is 
 
 ### IDL Definitions
 ```javascript
+dictionary TCPSocketOptions {
+  boolean noDelay = false;
+  [EnforceRange] unsigned long keepAliveDelay;
+  [EnforceRange] unsigned long sendBufferSize;
+  [EnforceRange] unsigned long receiveBufferSize;
+};
+
+dictionary TCPSocketOpenInfo {
+  ReadableStream readable;
+  WritableStream writable;
+
+  DOMString remoteAddress;
+  unsigned short remotePort;
+
+  DOMString localAddress;
+  unsigned short localPort;
+};
+
 interface TCPSocket {
   constructor(DOMString remoteAddress, unsigned short remotePort, optional TCPSocketOptions options = {});
 
-  readonly attribute Promise<TCPSocketConnection> connection;
+  readonly attribute Promise<TCPSocketOpenInfo> opened;
   readonly attribute Promise<void> closed;
 
   Promise<void> close();
@@ -201,7 +219,7 @@ if (!tcpSocket) {
 }
 
 // Wait for the connection to be established...
-let { readable, writable } = await tcpSocket.connection;
+let { readable, writable } = await tcpSocket.opened;
 
 // do stuff with the socket
 ...
@@ -225,7 +243,7 @@ See [`ReadableStream`](https://streams.spec.whatwg.org/#rs-intro) spec for more 
 ```javascript
 let tcpSocket = new TCPSocket(...);
 
-let { readable } = await tcpSocket.connection;
+let { readable } = await tcpSocket.opened;
 let reader = readable.getReader();
 
 let { value, done } = await reader.read();
@@ -248,7 +266,7 @@ See [`WritableStream`](https://streams.spec.whatwg.org/#ws-intro) spec for more 
 ```javascript
 let tcpSocket = new TCPSocket(...);
 
-let { writable } = await tcpSocket.connection;
+let { writable } = await tcpSocket.opened;
 let writer = writable.getWriter();
 
 const encoder = new TextEncoder();
@@ -271,10 +289,29 @@ Received packets will only be routed if they came from the remote address and po
 
 ### IDL Definitions
 ```javascript
-interface UDPSocket {
-  constructor(DOMString address, unsigned short port, optional UDPSocketOptions options = {});
+dictionary UDPSocketOptions {
+  required DOMString remoteAddress;
+  required [EnforceRange] unsigned short remotePort;
 
-  readonly attribute Promise<UDPSocketConnection> connection;
+  [EnforceRange] unsigned long sendBufferSize;
+  [EnforceRange] unsigned long receiveBufferSize;
+};
+
+dictionary UDPSocketOpenInfo {
+  ReadableStream readable;
+  WritableStream writable;
+
+  DOMString remoteAddress;
+  unsigned short remotePort;
+
+  DOMString localAddress;
+  unsigned short localPort;
+};
+
+interface UDPSocket {
+  constructor(UDPSocketOptions options);
+
+  readonly attribute Promise<UDPSocketOpenInfo> opened;
   readonly attribute Promise<void> closed;
 
   Promise<void> close();
@@ -283,20 +320,20 @@ interface UDPSocket {
 
 ### Opening/Closing the socket
 
-Applications will be able to request a TCP socket by creating a `UDPSocket` class using the `new` operator and then waiting for the connection to be established.
+Applications will be able to request a TCP socket by creating a `UDPSocket` class using the `new` operator and then waiting for the socket to be opened. Note that the constructor syntax is different from `TCPSocket` -- the `UDPSocketOptions` object includes `remoteAddress` and `remotePort` fields.
 
 ```javascript
 const remoteAddress = 'example.com';
 const remotePort = 7;
 
-let udpSocket = new UDPSocket(remoteAddress, remotePort);
+let udpSocket = new UDPSocket({ remoteAddress, remotePort });
 // If rejected by permissions-policy...
 if (!udpSocket) {
   return;
 }
 
 // Wait for the connection to be established...
-let { readable, writable } = await udpSocket.connection;
+let { readable, writable } = await udpSocket.opened;
 
 // do stuff with the socket
 ...
@@ -326,7 +363,7 @@ See [`ReadableStream`](https://streams.spec.whatwg.org/#rs-intro) spec for more 
 
 ```javascript
 let udpSocket = new UDPSocket(...);
-let { readable } = await udpSocket.connection;
+let { readable } = await udpSocket.opened;
 
 let reader = readable.getReader();
 
@@ -353,7 +390,7 @@ See [`WritableStream`](https://streams.spec.whatwg.org/#ws-intro) spec for more 
 
 ```javascript
 let udpSocket = new UDPSocket(...);
-let { writable } = await udpSocket.connection;
+let { writable } = await udpSocket.opened;
 
 let writer = writable.getWriter();
 
