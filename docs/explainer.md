@@ -4,7 +4,9 @@
 
 ## Background
 
-This Network Sockets API proposal relates to the Discourse post [Filling the remaining gap between WebSocket, WebRTC and WebTransport](https://discourse.wicg.io/t/filling-the-remaining-gap-between-websocket-webrtc-and-webtranspor/4366).
+This Direct Sockets API proposal relates to the Discourse post [Filling the remaining gap between WebSocket, WebRTC and WebTransport](https://discourse.wicg.io/t/filling-the-remaining-gap-between-websocket-webrtc-and-webtranspor/4366).
+
+This API is currently planned as a part of the [Isolated Web Apps](https://github.com/WICG/isolated-web-apps/blob/main/README.md) proposal - check out [Telnet Client Demo](https://github.com/GoogleChromeLabs/telnet-client) for a showcase of the API's capabilities.
 
 ## Use cases
 
@@ -18,6 +20,7 @@ The initial motivating use case is to support creating a web app that talks to s
 - [IOT](https://en.wikipedia.org/wiki/Internet_of_things) smart devices
 - [Distributed Hash Tables for P2P systems](https://discourse.wicg.io/t/filling-the-remaining-gap-between-websocket-webrtc-and-webtranspor/4366/3)
 - [Resilient collaboration using IPFS](https://discourse.wicg.io/t/filling-the-remaining-gap-between-websocket-webrtc-and-webtranspor/4366/5)
+- [Virtual Desktop Infrastructure (VDI)](https://en.wikipedia.org/wiki/Desktop_virtualization)
 
 ## Alternatives
 
@@ -44,8 +47,6 @@ JavaScript APIs for socket communication have been developed for B2G OS ([TCP](h
 
 The initial focus is on supporting connection to a single legacy server or device.
 
-Distributed Hash Tables are not an immediate focus. The current proposal would require the user to type the address of each node, which would not be feasible for large tables.
-
 IP multicast and UDP Broadcast are currently out of scope.
 
 ## Permissions Policy integration
@@ -60,54 +61,9 @@ This [`Permissions-Policy`](https://chromestatus.com/feature/5745992911552512) h
 
 ## Security Considerations
 
-User agents will need to carefully consider when to make the Direct Sockets API available to web applications,
-and what UI will be shown to the user.
-
-
-
-### Threat
-
-MITM attackers may inject sockets API calls into a web page.
-
-#### Mitigation
-
-The API will only available in secure contexts (HTTPS).
-
-
-
-### Threat
-
-A web app might initiate connections without the user realizing.
-
-#### Mitigation
-
-The api will only be available in high-trust mode.
-
-
-
-### Threat
-
-Attackers may use the API to DDOS third parties.
-
-#### Mitigation
-
-Connection attempts would be rate limited.
-
-Connections will only be able to be initiated after transient activation (user interaction with the page).
-
-No transient activation would be required for reconnections. This is important for robustness.
-
-
-
-### Threat
-
-Attackers may use the API to by-pass third parties' CORS policies.
-
-#### Mitigation
-
-We could forbid the API from being used for TCP with the well known HTTPS port, whenever the destination host supports CORS.
-
-
+The API is planned to be available only in
+[Isolated Web Apps](https://github.com/WICG/isolated-web-apps/blob/main/README.md)
+which themselves provide a decent level of security thanks to a transparent update model and strict Content Security Policy. Nevertheless, user agents will need to carefully consider when to make the Direct Sockets API available to web applications, and what UI will be shown to the user.
 
 ### Threat
 
@@ -117,22 +73,6 @@ Third party iframes (such as ads) might initiate connections.
 
 A permissions policy will control access, preventing third party use by default.
 
-
-
-### Threat
-
-An attacker might configure DNS entries to point to private addresses in the user's intranet, tricking the user into providing access to resources behind a firewall. Such access might be used to extract information or damage hardware.
-
-#### Mitigation
-
-Hostnames that resolve to [non-public addresses](https://wicg.github.io/cors-rfc1918/#framework) would be rejected.
-An exception is made for hostnames ending with `.local` - these are resolved using [mDNS](https://tools.ietf.org/html/rfc6762).
-
-Thus connections to a loopback address (`127.0.0.0/8`, `::1/128`), a private network address (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `fc00::/7`) or a link-local address (`169.254.0.0/16`, `fe80::/10`) will fail unless a raw IP address or a `*.local` hostname is entered by the user.
-
-For example, if the user enters `lights.example.com` and this resolves to `192.168.12.34`, we reject the connection attempt.
-If the user enters `lights.local`, and mDNS resolves this to `192.168.12.34`, the connection is allowed to proceed, just as if the user had typed `192.168.12.34`.
-
 ### Threat
 
 Use of the API may violate organization policies, that control which protocols may be used.
@@ -140,8 +80,6 @@ Use of the API may violate organization policies, that control which protocols m
 #### Mitigation
 
 User agents may restrict use of the API when enterprise software policies are in effect. For example, user agents might by default not allow use of this API unless the user has permission to install new binaries.
-
-
 
 ### Threat
 
@@ -157,19 +95,12 @@ One option would be to allow TLS to be requested when opening a connection, like
 
 Another option would be to provide a method that upgrades an existing TCP connection to use TLS. Use cases would include SMTP [STARTTLS](https://tools.ietf.org/html/rfc3207#section-4), IMAP [STARTTLS](https://tools.ietf.org/html/rfc2595#section-3.1) and POP [STLS](https://tools.ietf.org/html/rfc2595#section-4).
 
-
-## Privacy Considerations
-
-If a user agent provides an option to permit future connections from an origin to specific hosts, they should provide a way for the user to clear the list of permitted destinations. The list of permitted destinations should also be cleared when the user clears data for that origin.
-
-A user agent should not record permitted destinations if the API is used in Private Browsing modes.
-
 ## TCP
 
 To simplify security analysis, an API for listening for incoming connections is not yet being proposed.
 
 ### IDL Definitions
-```javascript
+```java
 dictionary TCPSocketOptions {
   boolean noDelay = false;
   [EnforceRange] unsigned long keepAliveDelay;
@@ -207,9 +138,9 @@ const remoteAddress = 'example.com';
 const remotePort = 7;
 
 const options = {
-    noDelay: false,
-    keepAlive: true,
-    keepAliveDelay: 720_000
+  noDelay: false,
+  keepAlive: true,
+  keepAliveDelay: 720_000
 };
 
 let tcpSocket = new TCPSocket(remoteAddress, remotePort, options);
@@ -232,7 +163,7 @@ There is currently no provision for setting the local address or port.
 
 ### IO operations
 
-The TCP socket can be used for reading and writing. 
+The TCP socket can be used for reading and writing.
 - Writable stream accepts [`BufferSource`](https://developer.mozilla.org/en-US/docs/Web/API/BufferSource)
 - Readable stream returns [`Uint8Array`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array)
 
@@ -288,7 +219,7 @@ To simplify security analysis, the initial proposal only supports cases where th
 Received packets will only be routed if they came from the remote address and port used when opening the socket. Other packets will be dropped silently.
 
 ### IDL Definitions
-```javascript
+```java
 dictionary UDPSocketOptions {
   required DOMString remoteAddress;
   required [EnforceRange] unsigned short remotePort;
@@ -342,8 +273,6 @@ let { readable, writable } = await udpSocket.opened;
 udpSocket.close();
 ```
 
-There is currently no provision for setting the local address or port.
-
 ### IO operations
 
 The UDP socket can be used for reading and writing. Both streams operate on the `UDPMessage` object which is defined as follows (idl):
@@ -372,7 +301,7 @@ if (done) {
   // stream is exhausted...
   // happens either on socket errors or explicit socket.close();
   return;
-} 
+}
 
 const decoder = new TextDecoder();
 
