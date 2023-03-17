@@ -42,13 +42,6 @@ With the shift away from browser plugins, native apps now provide the main alter
 
 JavaScript APIs for socket communication have been developed for B2G OS ([TCP](https://developer.mozilla.org/en-US/docs/Archive/B2G_OS/API/TCPSocket), [UDP](https://developer.mozilla.org/en-US/docs/Archive/B2G_OS/API/UDPSocket)) and Chrome Apps ([TCP](https://developer.chrome.com/apps/sockets_tcp), [UDP](https://developer.chrome.com/apps/sockets_udp)). An earlier proposed API for the web platform is the [TCP and UDP Socket API](https://www.w3.org/TR/tcp-udp-sockets/), which the System Applications Working Group published as an informative Working Group Note and is no longer progressing.
 
-
-## Initial Focus
-
-The initial focus is on supporting connection to a single legacy server or device.
-
-IP multicast and UDP Broadcast are currently out of scope.
-
 ## Permissions Policy integration
 
 This specification defines a policy-controlled permission identified by the string `direct-sockets`. Its default allowlist is `self`.
@@ -57,7 +50,7 @@ This specification defines a policy-controlled permission identified by the stri
 Permissions-Policy: direct-sockets=(self)
 ```
 
-This [`Permissions-Policy`](https://chromestatus.com/feature/5745992911552512) header determines whether a `new TCPSocket(...)` or `new UDPSocket(...)` call immediately rejects with a `NotAllowedError` `DOMException`.
+This [`Permissions-Policy`](https://chromestatus.com/feature/5745992911552512) header determines whether a `new TCPSocket(...)`, `new UDPSocket(...)` or `new TCPServerSocket(...)` call immediately rejects with a `NotAllowedError` `DOMException`.
 
 ## Security Considerations
 
@@ -71,7 +64,7 @@ Third party iframes (such as ads) might initiate connections.
 
 #### Mitigation
 
-A permissions policy will control access, preventing third party use by default.
+The `direct-sockets` permissions policy will control access, preventing third party use by default. To further safeguard from potential third-party attacks, IWAs employ a strict Content Security Policy that makes using external resources (i.e. the ones not originating from the Web Bundle itself) difficult and enforce [cross-origin-isolation](https://web.dev/why-coop-coep/).
 
 ### Threat
 
@@ -95,17 +88,20 @@ One option would be to allow TLS to be requested when opening a connection, like
 
 Another option would be to provide a method that upgrades an existing TCP connection to use TLS. Use cases would include SMTP [STARTTLS](https://tools.ietf.org/html/rfc3207#section-4), IMAP [STARTTLS](https://tools.ietf.org/html/rfc2595#section-3.1) and POP [STLS](https://tools.ietf.org/html/rfc2595#section-4).
 
-## TCP
+## TCPSocket
 
-To simplify security analysis, an API for listening for incoming connections is not yet being proposed.
+Applications will be able to request a TCP socket by creating a `TCPSocket` class using the `new` operator and then waiting for the connection to be established. Refer to the snippets below for a deeper dive.
 
 ### IDL Definitions
 ```java
+enum SocketDnsQueryType { "ipv4", "ipv6" };
+
 dictionary TCPSocketOptions {
   boolean noDelay = false;
   [EnforceRange] unsigned long keepAliveDelay;
   [EnforceRange] unsigned long sendBufferSize;
   [EnforceRange] unsigned long receiveBufferSize;
+  SocketDnsQueryType dnsQueryType;
 };
 
 dictionary TCPSocketOpenInfo {
@@ -120,7 +116,10 @@ dictionary TCPSocketOpenInfo {
 };
 
 interface TCPSocket {
-  constructor(DOMString remoteAddress, unsigned short remotePort, optional TCPSocketOptions options = {});
+  constructor(
+    DOMString remoteAddress,
+    unsigned short remotePort,
+    optional TCPSocketOptions options = {});
 
   readonly attribute Promise<TCPSocketOpenInfo> opened;
   readonly attribute Promise<void> closed;
@@ -129,9 +128,12 @@ interface TCPSocket {
 };
 ```
 
-### Opening/Closing the socket
+### Examples
 
-Applications will be able to request a TCP socket by creating a `TCPSocket` class using the `new` operator and then waiting for the connection to be established.
+<details>
+<summary>Learn more about using TCPSocket.</summary>
+
+### Opening/Closing the socket
 
 ```javascript
 const remoteAddress = 'example.com';
@@ -159,8 +161,6 @@ let { readable, writable } = await tcpSocket.opened;
 tcpSocket.close();
 ```
 
-There is currently no provision for setting the local address or port.
-
 ### IO operations
 
 The TCP socket can be used for reading and writing.
@@ -170,6 +170,7 @@ The TCP socket can be used for reading and writing.
 #### Reading
 
 See [`ReadableStream`](https://streams.spec.whatwg.org/#rs-intro) spec for more examples.
+`TCPSocket` supports both [`ReadableStreamDefaultReader`](https://streams.spec.whatwg.org/#default-reader-class) and [`ReadableStreamBYOBReader`](https://streams.spec.whatwg.org/#readablestreambyobreader).
 
 ```javascript
 let tcpSocket = new TCPSocket(...);
@@ -212,17 +213,35 @@ writer.write(
 // Don't forget to call releaseLock() or cancel()/abort() on the writer once done.
 ```
 
-## UDP
+</details>
 
-To simplify security analysis, the initial proposal only supports cases where the web app initiates communication with a remote host.
+## UDPSocket
 
-Received packets will only be routed if they came from the remote address and port used when opening the socket. Other packets will be dropped silently.
+Applications will be able to request a UDP socket by creating a `UDPSocket` class using the `new` operator and then waiting for the socket to be opened.
+
+`UDPSocket` operates in different modes depending on the provided set of options:
+* In `bound` mode the socket is bound to a specific local IP endpoint (defined by `localAddress` and optionally `localPort`) and is capable of sending/receiving datagrams to/from arbitrary destinations.
+  * `localAddress` must be a valid IP address.
+  * `localPort` can be omitted to let the OS pick one on its own.
+  * `remoteAddress` and `remotePort` must be specified on a per-packet basis as part of `UDPMessage`.
+  * `remoteAddress` (in `UDPMessage`) can either be an IP address or a domain name when sending.
+* In `connected` mode the socket is bound to an arbitrary local IP endpoint and sends/receives datagrams from/to a single destination (defined by `remoteAddress` and `remotePort`).
+  *`remoteAddress` can either be an IP address or a domain name.
+
+`remoteAddress`/`remotePort` and `localAddress`/`localPort` pairs cannot be specified together.
 
 ### IDL Definitions
 ```java
+enum SocketDnsQueryType { "ipv4", "ipv6" };
+
 dictionary UDPSocketOptions {
-  required DOMString remoteAddress;
-  required [EnforceRange] unsigned short remotePort;
+  DOMString remoteAddress;
+  [EnforceRange] unsigned short remotePort;
+
+  DOMString localAddress;
+  [EnforceRange] unsigned short localPort;
+
+  SocketDnsQueryType dnsQueryType;
 
   [EnforceRange] unsigned long sendBufferSize;
   [EnforceRange] unsigned long receiveBufferSize;
@@ -249,15 +268,40 @@ interface UDPSocket {
 };
 ```
 
+### Examples
+
+<details>
+<summary>Learn more about using UDPSocket.</summary>
+
 ### Opening/Closing the socket
 
-Applications will be able to request a TCP socket by creating a `UDPSocket` class using the `new` operator and then waiting for the socket to be opened. Note that the constructor syntax is different from `TCPSocket` -- the `UDPSocketOptions` object includes `remoteAddress` and `remotePort` fields.
-
+#### Connected version
 ```javascript
-const remoteAddress = 'example.com';
+const remoteAddress = 'example.com'; // could be a raw IP address too
 const remotePort = 7;
 
 let udpSocket = new UDPSocket({ remoteAddress, remotePort });
+// If rejected by permissions-policy...
+if (!udpSocket) {
+  return;
+}
+
+// Wait for the connection to be established...
+let { readable, writable } = await udpSocket.opened;
+
+// do stuff with the socket
+...
+
+// Close the socket. Note that this operation will succeeed if and only if neither readable not writable streams are locked.
+udpSocket.close();
+```
+
+#### Bound version
+```javascript
+const localAddress = '127.0.0.1';
+
+// Omitting |localPort| allows the OS to pick one on its own.
+let udpSocket = new UDPSocket({ localAddress });
 // If rejected by permissions-policy...
 if (!udpSocket) {
   return;
@@ -290,8 +334,10 @@ dictionary UDPMessage {
 
 See [`ReadableStream`](https://streams.spec.whatwg.org/#rs-intro) spec for more examples.
 
+##### Connected mode
+
 ```javascript
-let udpSocket = new UDPSocket(...);
+let udpSocket = new UDPSocket({ remoteAddress, remotePort });
 let { readable } = await udpSocket.opened;
 
 let reader = readable.getReader();
@@ -305,8 +351,36 @@ if (done) {
 
 const decoder = new TextDecoder();
 
-// value is a UDPMessage object.
-let { data, remoteAddress, remotePort } = value;
+// |value| is a UDPMessage object.
+// |remoteAddress| and |remotePort| members of UDPMessage are guaranteed to be null.
+let { data } = value;
+let message = decoder.decode(data);
+...
+
+// Don't forget to call releaseLock() or cancel() on the reader once done.
+```
+
+##### Bound mode
+
+```javascript
+let udpSocket = new UDPSocket({ localAddress });
+let { readable } = await udpSocket.opened;
+
+let reader = readable.getReader();
+
+let { value, done } = await reader.read();
+if (done) {
+  // stream is exhausted...
+  // happens either on socket errors or explicit socket.close();
+  return;
+}
+
+const decoder = new TextDecoder();
+
+// |value| is a UDPMessage object.
+// |remoteAddress| and |remotePort| members of UDPMessage indicate the remote host
+// where the datagram came from.
+let { data, remoteAddress, remoetPort } = value;
 let message = decoder.decode(data);
 ...
 
@@ -317,8 +391,10 @@ let message = decoder.decode(data);
 
 See [`WritableStream`](https://streams.spec.whatwg.org/#ws-intro) spec for more examples.
 
+##### Connected mode
+
 ```javascript
-let udpSocket = new UDPSocket(...);
+let udpSocket = new UDPSocket({ remoteAddress, remotePort });
 let { writable } = await udpSocket.opened;
 
 let writer = writable.getWriter();
@@ -326,13 +402,15 @@ let writer = writable.getWriter();
 const encoder = new TextEncoder();
 let message = "Some user-created datagram";
 
-// sends a UDPMessage object with data = Uint8Array
+// Sends a UDPMessage object where |data| is a Uint8Array.
+// Note that |remoteAddress| and |remotePort| must not be specified.
 await writer.ready;
 writer.write({
     data: encoder.encode(message)
 }).catch(err => console.log(err));
 
-// or, alternatively, with data = ArrayBuffer
+// Sends a UDPMessage object where |data| is an ArrayBuffer.
+// Note that |remoteAddress| and |remotePort| must not be specified.
 await writer.ready;
 writer.write({
     data: encoder.encode(message).buffer
@@ -341,3 +419,131 @@ writer.write({
 
 // Don't forget to call releaseLock() or cancel()/abort() on the writer once done.
 ```
+
+##### Bound mode
+
+```javascript
+let udpSocket = new UDPSocket({ localAddress });
+let { writable } = await udpSocket.opened;
+
+let writer = writable.getWriter();
+
+const encoder = new TextEncoder();
+let message = "Some user-created datagram";
+
+// Sends a UDPMessage object where |data| is a Uint8Array.
+// Note that both |remoteAddress| and |remotePort| must be specified in this case.
+await writer.ready;
+writer.write({
+    data: encoder.encode(message),
+    remoteAddress: 'example.com',
+    remotePort: 7
+}).catch(err => console.log(err));
+
+// Sends a UDPMessage object where |data| is an ArrayBuffer.
+// Note that both |remoteAddress| and |remotePort| must be specified in this case.
+await writer.ready;
+writer.write({
+    data: encoder.encode(message).buffer,
+    remoteAddress: '98.76.54.32',
+    remotePort: 18
+}).catch(err => console.log(err));
+...
+
+// Don't forget to call releaseLock() or cancel()/abort() on the writer once done.
+```
+
+</details>
+
+## TCPServerSocket
+
+Applications will be able to request a TCP server socket by creating a `TCPServerSocket` class using the `new` operator and then waiting for the socket to be opened.
+  * `localPort` can be omitted to let the OS pick one on its own.
+  * `backlog` sets the size of the OS accept queue; if not specified, will be substituted by platform default.
+
+### IDL Definitions
+
+```java
+dictionary TCPServerSocketOptions {
+  [EnforceRange] unsigned short localPort,
+  [EnforceRange] unsigned long backlog;
+};
+
+dictionary TCPServerSocketOpenInfo {
+  ReadableStream readable;
+
+  DOMString localAddress;
+  unsigned short localPort;
+};
+
+interface TCPServerSocket {
+  constructor(
+    DOMString localAddress,
+    optional TCPServerSocketOptions options = {});
+
+  readonly attribute Promise<TCPServerSocketOpenInfo> opened;
+  readonly attribute Promise<void> closed;
+
+  Promise<void> close();
+};
+```
+
+### Examples
+
+<details>
+<summary>Learn more about TCPServerSocket.</summary>
+
+### Opening/Closing the socket
+
+```javascript
+let tcpServerSocket = new TCPServerSocket('::');
+// If rejected by permissions-policy...
+if (!tcpServerSocket) {
+  return;
+}
+
+// Wait for the connection to be established...
+let { readable } = await tcpServerSocket.opened;
+
+// do stuff with the socket
+...
+
+// Close the socket. Note that this operation will succeeed if and only if readable stream is not locked.
+tcpServerSocket.close();
+```
+
+### Accepting connections
+
+Connection accepted by `TCPServerSocket` are delivered via its `ReadableStream` in the form of ready-to-use `TCPSocket` objects.
+
+See [`ReadableStream`](https://streams.spec.whatwg.org/#rs-intro) spec for more examples.
+
+```javascript
+let tcpServerSocket = new TCPServerSocket('::');
+let { readable: tcpServerSocketReadable } = await udpSocket.opened;
+
+let tcpServerSocketReader = tcpServerSocketReadable.getReader();
+
+// |value| is an accepted TCPSocket.
+let { value: tcpSocket, done } = await tcpServerSocketReader.read();
+if (done) {
+  // stream is exhausted...
+  // happens either on socket errors or explicit socket.close();
+  return;
+}
+tcpServerSocketReader.releaseLock();
+
+// Send a packet using the newly accepted socket.
+const { writable: tcpSocketWritable } = await tcpSocket.opened;
+
+const tcpSocketWriter = tcpSocketWritable.getWriter();
+
+const encoder = new TextEncoder();
+const message = "Some user-created tcp data";
+
+await tcpSocketWriter.ready;
+await tcpSocketWriter.write(encoder.encode(message));
+
+// Don't forget to call releaseLock() or close()/abort() on the writer once done.
+```
+</details>
