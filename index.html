@@ -301,11 +301,12 @@
           <ol>
             <li>
               Let |desiredSize| be the
-              <a
-                href="https://streams.spec.whatwg.org/#desired-size-to-fill-a-streams-internal-queue">desired
-                size</a>
-              of [=this=].{{TCPSocket/[[readable]]}}'s
-              <a href="https://streams.spec.whatwg.org/#internal-queues">internal queue</a>.
+              [=ReadableStream/desired size to fill up to the high water mark=] for
+              [=this=].{{TCPSocket/[[readable]]}}.
+            <li>
+              If [=this=].{{TCPSocket/[[readable]]}}'s [=ReadableStream/current BYOB request view=]
+              is non-null, then set |desiredSize| to [=this=].{{TCPSocket/[[readable]]}}'s
+              [=ReadableStream/current BYOB request view=]'s [=BufferSource/byte length=].
             <li>
               Run the following steps in parallel:
               <ol>
@@ -331,16 +332,23 @@
                         when asked for more data from the socket.
                       </div>
                     <li>
-                      If no errors were encountered run the following steps:
+                      If no errors were encountered, then:
                       <ol>
                         <li>
-                          Let |buffer| be a [=new=] {{ArrayBuffer}} created from |bytes|.
+                          If [=this=].{{TCPSocket/[[readable]]}}'s
+                          [=ReadableStream/current BYOB request view=] is non-null,
+                          then [=ArrayBufferView/write=] |bytes| into
+                          [=this=].{{TCPSocket/[[readable]]}}'s
+                          [=ReadableStream/current BYOB request view=], and set
+                          |view| to [=this=].{{TCPSocket/[[readable]]}}'s
+                          [=ReadableStream/current BYOB request view=].
                         <li>
-                          Let |chunk| be a [=new=] {{Uint8Array}} view over |buffer|,
-                          who's length is the length of |bytes|.
+                          Otherwise, set |view| to the result of
+                          [=ArrayBufferView/create|creating=] a {{Uint8Array}} from
+                          |bytes| in [=this=]'s [=relevant Realm=].
                         <li>
-                          Invoke [=ReadableStream/enqueue=] on
-                          [=this=].{{TCPSocket/[[readable]]}} with |chunk|.
+                          [=ReadableStream/Enqueue=] |view| into
+                          [=this=].{{TCPSocket/[[readable]]}}.
                       </ol>
                     <li>
                       If a network or operating system error was encountered, invoke
@@ -362,15 +370,12 @@
               Return [=a promise resolved with=] `undefined`.
           </ol>
         <li>
-          [=ReadableStream/Set up=] |stream| with
-          <a
-            href="https://streams.spec.whatwg.org/#readablestream-set-up-pullalgorithm">pullAlgorithm</a>
+          [=ReadableStream/Set up with byte reading support=] |stream| with
+          <i>[=ReadableStream/set up with byte reading support/pullAlgorithm=]</i>
           set to |pullAlgorithm|,
-          <a
-            href="https://streams.spec.whatwg.org/#readablestream-set-up-cancelalgorithm">cancelAlgorithm</a>
-          set to |cancelAlgorithm|,
-          <a
-            href="https://streams.spec.whatwg.org/#readablestream-set-up-highwatermark">highWaterMark</a>
+          <i>[=ReadableStream/set up with byte reading support/cancelAlgorithm=]</i>
+          set to |cancelAlgorithm|, and
+          <i>[=ReadableStream/set up with byte reading support/highWaterMark=]</i>
           set to an implementation-defined value.
         <li>Set [=this=].{{TCPSocket/[[readable]]}} to |stream|.
       </ol>
@@ -555,17 +560,13 @@
           </ol>
         <li>
           [=WritableStream/Set up=] |stream| with
-          <a
-            href="https://streams.spec.whatwg.org/#writablestream-set-up-writealgorithm">writeAlgorithm</a>
+          <i>[=WritableStream/set up/writeAlgorithm=]</i>
           set to |writeAlgorithm|,
-          <a
-            href="https://streams.spec.whatwg.org/#writablestream-set-up-abortalgorithm">abortAlgorithm</a>
+          <i>[=WritableStream/set up/abortAlgorithm=]</i>
           set to |abortAlgorithm|,
-          <a
-            href="https://streams.spec.whatwg.org/#writablestream-set-up-closealgorithm">closeAlgorithm</a>
+          <i>[=WritableStream/set up/closeAlgorithm=]</i>
           set to |closeAlgorithm|,
-          <a
-            href="https://streams.spec.whatwg.org/#writablestream-set-up-highwatermark">highWaterMark</a>
+          <i>[=WritableStream/set up/highWaterMark=]</i>
           set to an implementation-defined value.
         <li>
           [=AbortSignal/Add=] the following abort steps to |signal|:
@@ -1023,11 +1024,8 @@
           <ol>
             <li>
               Let |desiredSize| be the
-              <a
-                href="https://streams.spec.whatwg.org/#desired-size-to-fill-a-streams-internal-queue">desired
-                size</a>
-              of [=this=].{{UDPSocket/[[readable]]}}'s
-              <a href="https://streams.spec.whatwg.org/#internal-queues">internal queue</a>.
+              [=ReadableStream/desired size to fill up to the high water mark=] for
+              [=this=].{{UDPSocket/[[readable]]}}.
             <li>
               Run the following steps in parallel:
               <ol>
@@ -1084,14 +1082,12 @@
           </ol>
         <li>
           [=ReadableStream/Set up=] |stream| with
-          <a
-            href="https://streams.spec.whatwg.org/#readablestream-set-up-pullalgorithm">pullAlgorithm</a>
+          <i>[=ReadableStream/set up/pullAlgorithm=]</i>
           set to |pullAlgorithm|,
-          <a
-            href="https://streams.spec.whatwg.org/#readablestream-set-up-cancelalgorithm">cancelAlgorithm</a>
+          <i>[=ReadableStream/set up/cancelAlgorithm=]</i>
           set to |cancelAlgorithm|,
-          <a
-            href="https://streams.spec.whatwg.org/#readablestream-set-up-highwatermark">highWaterMark</a>
+          <i>[=ReadableStream/set up/highWaterMark=]</i>
+          [=ReadableStream/Set up=] |stream| with
           set to an implementation-defined value.
         <li>
           Set [=this=].{{UDPSocket/[[readable]]}} to |stream|.
@@ -1293,17 +1289,13 @@
           </ol>
         <li>
           [=WritableStream/Set up=] |stream| with
-          <a
-            href="https://streams.spec.whatwg.org/#writablestream-set-up-writealgorithm">writeAlgorithm</a>
+          <i>[=WritableStream/set up/writeAlgorithm=]</i>
           set to |writeAlgorithm|,
-          <a
-            href="https://streams.spec.whatwg.org/#writablestream-set-up-abortalgorithm">abortAlgorithm</a>
+          <i>[=WritableStream/set up/abortAlgorithm=]</i>
           set to |abortAlgorithm|,
-          <a
-            href="https://streams.spec.whatwg.org/#writablestream-set-up-closealgorithm">closeAlgorithm</a>
+          <i>[=WritableStream/set up/closeAlgorithm=]</i>
           set to |closeAlgorithm|,
-          <a
-            href="https://streams.spec.whatwg.org/#writablestream-set-up-highwatermark">highWaterMark</a>
+          <i>[=WritableStream/set up/highWaterMark=]</i>
           set to an implementation-defined value.
         <li>
           [=AbortSignal/Add=] the following abort steps to |signal|:
