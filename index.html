@@ -1094,8 +1094,8 @@
             Enables or disables `IPV6_V6ONLY` to either restrict connections to IPv6 only or
             allow both IPv4/IPv6 connections.
             <div class="note">
-              This field can only be supplied in {{UDPSocket/bound}} {{UDPSocket/mode}} when `localAddress` is equal
-              to the IPv6 unspecified address (`::`).
+              This field can only be supplied in {{UDPSocket/bound}} {{UDPSocket/mode}} when
+              `localAddress` is equal to the IPv6 unspecified address (`::`).
             </div>
             <div class="note">
               Leave this field empty to retain default platform-defined behavior
@@ -1720,6 +1720,404 @@
     </section>
   </section>
 
+  <section data-dfn-for="TCPServerSocket">
+    <h2>
+      {{TCPServerSocket}} interface
+    </h2>
+
+    <pre class="idl">
+      [Exposed=(Window,Worker), SecureContext]
+      interface TCPServerSocket {
+        constructor(DOMString localAddress,
+                    optional TCPServerSocketOptions options = {});
+
+        readonly attribute Promise&lt;TCPServerSocketOpenInfo> opened;
+        readonly attribute Promise&lt;undefined> closed;
+
+        Promise&lt;undefined> close();
+      };
+    </pre>
+
+    <p>
+      Methods on this interface typically complete asynchronously, queuing work on the
+      <dfn>TCPServerSocket task source</dfn>.
+
+    <p>
+      Instances of {{TCPServerSocket}} are created with the internal slots described in the
+      following
+      table:
+
+    <table class="simple" data-dfn-for="TCPServerSocket">
+      <tr>
+        <th>Internal slot
+        <th>Initial value
+        <th>Description (non-normative)
+      <tr>
+        <td><dfn>[[\readable]]</dfn>
+        <td>`null`
+        <td>A {{ReadableStream}} used to accept incoming connections.
+      <tr>
+        <td><dfn>[[\openedPromise]]</dfn>
+        <td>`new Promise`
+        <td>A {{Promise}} used to wait for the socket to be opened. Corresponds to the
+          {{TCPServerSocket/opened}} member.
+      <tr>
+        <td><dfn>[[\closedPromise]]
+        <td>`new Promise`
+        <td>A {{Promise}} used to wait for the socket to close or error. Corresponds to the
+          {{TCPServerSocket/closed}} member.
+    </table>
+
+    <section>
+      <h3><dfn>constructor()</dfn> method</h3>
+
+      <aside class="example">
+        In order to accept incoming TCP connections a listening socket must be requested first.
+        The socket object constructor allows the site to specify necessary parameters which control
+        what interfaces the socket is supposed to listen on and how many connections can be queued
+        up.
+
+        Once {{TCPServerSocket/opened}} has resolved, {{TCPServerSocketOpenInfo/readable}}
+        can be accessed to get the {{ReadableStream}} instance to start accepting connections to the
+        server.
+      </aside>
+
+      The {{TCPServerSocket/constructor()}} steps are:
+
+      <ol>
+        <li>
+          If [=this=]'s [=relevant global object=]'s [=associated Document=] is
+          not [=allowed to use=] the [=policy-controlled feature=] named "[=policy-controlled
+          feature/direct-sockets=]", throw a "{{NotAllowedError}}" {{DOMException}}.
+        <li>
+          If |localAddress| is not a valid IP address, throw a {{TypeError}}.
+        <li>
+          If |options|["{{TCPServerSocketOptions/localPort}}"] is equal to 0, throw a {{TypeError}}.
+        <li>
+          If |options|["{{TCPServerSocketOptions/backlog}}"] is equal to 0, throw a {{TypeError}}.
+        <li>
+          If |options|["{{TCPServerSocketOptions/ipv6Only}}"] is true but `localAddress` is not equal
+          to the IPv6 unspecified address (`::`), throw a {{TypeError}}.
+        <li>
+          Perform the following steps [=in parallel=].
+          <ol>
+            <li>
+              Invoke the operating system to open a TCP server socket using the given |localAddress|
+              and the connection parameters (or their defaults) specified in |options|.
+            <li>
+              If this fails for any reason, [=queue a global task=] on the [=relevant global
+              object=] of [=this=] using the [=TCPServerSocket task source=] to run the
+              following steps:
+              <ol>
+                <li>
+                  [=Reject=] the {{TCPServerSocket/[[openedPromise]]}} with a "{{NetworkError}}"
+                  {{DOMException}}.
+                <li>
+                  [=Reject=] the {{TCPServerSocket/[[closedPromise]]}} with a "{{NetworkError}}"
+                  {{DOMException}}.
+              </ol>
+            <li>
+              On success, [=queue a global task=] on the [=relevant global object=] of
+              [=this=] using the [=TCPServerSocket task source=] to run the following steps:
+              <ol>
+                <li>
+                  [=initialize TCPServerSocket readable stream|Initialize=] {{TCPServerSocket/[[readable]]}}.
+                <li>
+                  Let |openInfo:TCPServerSocketOpenInfo| be a new {{TCPServerSocketOpenInfo}}.
+                <li>
+                  Set |openInfo|["{{TCPServerSocketOpenInfo/readable}}"] to
+                  [=this=].{{TCPServerSocket/[[readable]]}}.
+                <li>
+                  Populate the remaining fields of |openInfo| using the information provided by the
+                  operating system:
+                  |openInfo|["{{TCPServerSocketOpenInfo/localAddress}}"] and
+                  |openInfo|["{{TCPServerSocketOpenInfo/localPort}}"].
+                <li>
+                  [=Resolve=] [=this=].{{TCPServerSocket/[[openedPromise]]}} with |openInfo|.
+              </ol>
+          </ol>
+      </ol>
+
+      <section data-dfn-for="TCPServerSocketOptions">
+        <h4><dfn>TCPServerSocketOptions</dfn> dictionary</h4>
+        <pre class="idl">
+          dictionary TCPServerSocketOptions {
+            [EnforceRange] unsigned short localPort;
+            [EnforceRange] unsigned long backlog;
+
+            boolean ipv6Only;
+          };
+        </pre>
+
+        <dl>
+          <dt>
+            <dfn>localPort</dfn> member
+          </dt>
+          <dd>
+            The port to open the socket on.
+            <div class="note">
+              Leave this field empty to let the OS pick one on its own.
+            </div>
+          </dd>
+          <dt>
+            <dfn>backlog</dfn> member
+          </dt>
+          <dd>
+            The size of the OS accept queue.
+            <div class="note">
+              Leave this field empty to let the OS pick a reasonable platform-specific default.
+            </div>
+          </dd>
+          <dt>
+            <dfn>ipv6Only</dfn> member
+          </dt>
+          <dd>
+            Enables or disables `IPV6_V6ONLY` to either restrict connections to IPv6 only or
+            allow both IPv4/IPv6 connections.
+            <div class="note">
+              This field can only be supplied when `localAddress` is equal to the IPv6
+              unspecified address (`::`).
+            </div>
+            <div class="note">
+              Leave this field empty to retain default platform-defined behavior
+              (`true` on Windows and `false` on Posix).
+            </div>
+          </dd>
+        </dl>
+
+      </section>
+
+    </section>
+
+    <section>
+      <h3>{{TCPServerSocket/[[readable]]}} attribute (internal)</h3>
+
+      <aside class="example">
+        An application listening for incoming connections on a {{TCPServerSocket}} will typically
+        use the {{ReadableStream}} like this:
+
+        <pre class="js">
+          const { readable } = await socket.opened;
+          const reader = readable.getReader();
+
+          while (true) {
+            const { value: acceptedSocket, done } = await reader.read();
+            if (done) {
+              // |reader| has been canceled.
+              break;
+            }
+            // Do something with |acceptedSocket|...
+          }
+
+          reader.releaseLock();
+        </pre>
+      </aside>
+
+      The steps to <dfn data-lt="initialize TCPServerSocket readable stream">initialize the
+      TCPServerSocket readable stream</dfn> are:
+
+      <ol>
+        <li>
+          Let |stream:ReadableStream| be a [=new=] {{ReadableStream}}.
+        <li>
+          Let |pullAlgorithm| be the following steps:
+          <ol>
+            <li>
+              Let |desiredSize| be the
+              <a
+                href="https://streams.spec.whatwg.org/#desired-size-to-fill-a-streams-internal-queue">desired
+                size</a>
+              of [=this=].{{TCPServerSocket/[[readable]]}}'s
+              <a href="https://streams.spec.whatwg.org/#internal-queues">internal queue</a>.
+            <li>
+              Run the following steps in parallel:
+              <ol>
+                <li>
+                  Invoke the operating system to accept up to |desiredSize| incoming connections.
+                <li>
+                  [=Queue a global task=] on the [=relevant global object=] of
+                  [=this=] using the [=TCPServerSocket task source=] to run the following steps:
+                  <ol>
+                    <li>
+                      If the connection was closed gracefully, run the following steps:
+                      <ol>
+                        <li>
+                          Invoke [=ReadableStream/close=] on [=this=].{{TCPServerSocket/[[readable]]}}.
+                        <li>
+                          Invoke the steps to [=handle closing the TCPServerSocket readable stream=].
+                      </ol>
+                    <li>
+                      If no errors were encountered run the following steps:
+                      <ol>
+                        <li>
+                          Let |tcpSocket| be a [=new=] {{TCPSocket}} accepted by the operating system.
+                        <li>
+                          Invoke [=ReadableStream/enqueue=] on
+                          [=this=].{{TCPServerSocket/[[readable]]}} with |tcpSocket|.
+                      </ol>
+                    <li>
+                      If a network or operating system error was encountered, invoke
+                      [=ReadableStream/error=] on [=this=].{{TCPServerSocket/[[readable]]}} with
+                      a "{{NetworkError}}" {{DOMException}} and invoke the steps
+                      to [=handle closing the TCPServerSocket readable stream=].
+                  </ol>
+              </ol>
+            <li>
+              Return [=a promise resolved with=] `undefined`.
+          </ol>
+
+        <li>
+          Let |cancelAlgorithm| be the following steps:
+          <ol>
+            <li>
+              Invoke the steps to [=handle closing the TCPServerSocket readable stream=].
+            <li>
+              Return [=a promise resolved with=] `undefined`.
+          </ol>
+        <li>
+          [=ReadableStream/Set up=] |stream| with
+          <a
+            href="https://streams.spec.whatwg.org/#readablestream-set-up-pullalgorithm">pullAlgorithm</a>
+          set to |pullAlgorithm|,
+          <a
+            href="https://streams.spec.whatwg.org/#readablestream-set-up-cancelalgorithm">cancelAlgorithm</a>
+          set to |cancelAlgorithm|,
+          <a
+            href="https://streams.spec.whatwg.org/#readablestream-set-up-highwatermark">highWaterMark</a>
+          set to an implementation-defined value.
+        <li>Set [=this=].{{TCPServerSocket/[[readable]]}} to |stream|.
+      </ol>
+
+      To <dfn>handle closing the TCPServerSocket readable stream</dfn> run the following steps
+      [=in parallel=]:
+
+      <ol>
+        <li>
+          Invoke the operating system to close the socket.
+        <li>
+          [=Queue a global task=] on the [=relevant global object=] of
+          [=this=] using the [=TCPServerSocket task source=] to
+          [=resolve=] [=this=].{{TCPServerSocket/[[closedPromise]]}}
+          with `undefined`.
+      </ol>
+
+    </section>
+
+    <section>
+      <h3><dfn>opened</dfn> attribute</h3>
+
+      <aside class="example">
+        {{TCPServerSocket/opened}} is an attribute containing all information about the socket.
+        Once it is resolved, the developer can use {{TCPSocketOpenInfo/readable}} to accept new
+        connections to the server.
+
+        <pre class="js">
+          const { readable } = await socket.opened;
+
+          const reader = readable.getReader();
+          // Accept new connection to the socket using |reader|...
+        </pre>
+      </aside>
+
+      When called, returns the [=this=].{{TCPServerSocket/[[openedPromise]]}}.
+
+      <section data-dfn-for="TCPServerSocketOpenInfo">
+        <h4><dfn>TCPServerSocketOpenInfo</dfn> dictionary</h4>
+
+        <pre class="idl">
+          dictionary TCPServerSocketOpenInfo {
+            ReadableStream readable;
+
+            DOMString localAddress;
+            unsigned short localPort;
+          };
+        </pre>
+
+        <dl>
+          <dt>
+            <dfn>readable</dfn> member
+          </dt>
+          <dd>
+            The readable side of the socket. Set to {{TCPServerSocket/[[readable]]}}.
+          </dd>
+          <dt>
+            <dfn>localAddress</dfn> member
+          </dt>
+          <dd>
+            Local IP address that the socket is bound to.
+          </dd>
+          <dt>
+            <dfn>localPort</dfn> member
+          </dt>
+          <dd>
+            Local port that the socket is bound to.
+          </dd>
+        </dl>
+
+      </section>
+    </section>
+
+    <section>
+      <h3><dfn>closed</dfn> attribute</h3>
+
+      <aside class="example">
+        The {{TCPServerSocket/closed}} is an attribute that keeps track of the socket state.
+        It gets resolved if the socket is closed gracefully (i.e. by the user) or rejected in case
+        of an error.
+
+        <pre class="js">
+          socket.closed.then(() => console.log("Closed"), () => console.log("Errored"));
+        </pre>
+
+        Note that {{TCPServerSocket/closed}} will be automatically resolved or rejected once
+        {{TCPServerSocket/[[readable]]}} reaches a closed or errored state respectively.
+      </aside>
+
+      When called, returns the [=this=].{{TCPServerSocket/[[closedPromise]]}}.
+    </section>
+
+    <section>
+      <h3><dfn>close()</dfn> method</h3>
+
+      <aside class="example">
+        When listening to new connections is no longer required, the socket can be closed
+        and the associated resources released by the system.
+
+        <p>
+          Calling `socket.`{{TCPServerSocket/close()}} implicitly invokes
+          `opened.`{{TCPServerSocketOpenInfo/readable}}`.`{{ReadableStream/cancel()}}.
+          If the application has previously called
+          `opened.`{{TCPServerSocketOpenInfo/readable}}`.`{{ReadableStream/getReader()}},
+          the stream is locked and the socket cannot be closed. This forces the developer to
+          decide how to handle any accept operations that are in progress.
+
+      </aside>
+
+      The {{TCPServerSocket/close()}} method steps are:
+
+      <ol>
+        <li>
+          If [=this=].{{TCPServerSocket/[[openedPromise]]}} is rejected or not yet resolved,
+          [=reject=] with "{{InvalidStateError}}" {{DOMException}}.
+        <li>
+          If [=this=].{{TCPServerSocket/[[closedPromise]]}} is settled, return
+          [=this=].{{TCPServerSocket/[[closedPromise]]}}.
+        <li>
+          If [=this=].{{TCPServerSocket/[[readable]]}} is <a
+            href="https://streams.spec.whatwg.org/#lock">locked</a>,
+          [=reject=] with "{{InvalidStateError}}" {{DOMException}}.
+        <li>
+          Let |cancelPromise:Promise| be the result of invoking
+          [=ReadableStream/cancel=] on [=this=].{{TCPServerSocket/[[readable]]}}.
+        <li>
+          Set |cancelPromise|.[[\PromiseIsHandled]] to true.
+        <li>
+          Return [=this=].{{TCPServerSocket/[[closedPromise]]}}.
+      </ol>
+
+    </section>
+  </section>
+
   <section id="integrations">
     <h2>Integrations</h2>
 
@@ -1739,7 +2137,7 @@
 
       <div class="note">
         A document’s permission policy determines whether a
-        `new TCPSocket(...)` or `new UDPSocket(...)` call rejects with
+        `new TCPSocket(...)`, `new UDPSocket(...)` or `new TCPServerSocket(...)` call rejects with
         a {{"NotAllowedError"}} {{DOMException}}.
       </div>
 
