@@ -180,7 +180,8 @@ let reader = readable.getReader();
 
 let { value, done } = await reader.read();
 if (done) {
-  // stream is exhausted...
+  // this happens either if the socket is exhausted (i.e. when the remote peer
+  // closes the connection gracefully), or after manual readable.releaseLock()/reader.cancel().
   return;
 }
 
@@ -344,8 +345,7 @@ let reader = readable.getReader();
 
 let { value, done } = await reader.read();
 if (done) {
-  // stream is exhausted...
-  // happens either on socket errors or explicit socket.close();
+  // this happens only if readable.releaseLock() or reader.cancel() is called manually.
   return;
 }
 
@@ -370,8 +370,7 @@ let reader = readable.getReader();
 
 let { value, done } = await reader.read();
 if (done) {
-  // stream is exhausted...
-  // happens either on socket errors or explicit socket.close();
+  // this happens only if readable.releaseLock() or reader.cancel() is called manually.
   return;
 }
 
@@ -380,7 +379,7 @@ const decoder = new TextDecoder();
 // |value| is a UDPMessage object.
 // |remoteAddress| and |remotePort| members of UDPMessage indicate the remote host
 // where the datagram came from.
-let { data, remoteAddress, remoetPort } = value;
+let { data, remoteAddress, remotePort } = value;
 let message = decoder.decode(data);
 ...
 
@@ -433,6 +432,9 @@ let message = "Some user-created datagram";
 
 // Sends a UDPMessage object where |data| is a Uint8Array.
 // Note that both |remoteAddress| and |remotePort| must be specified in this case.
+// Specifying a domain name as |remoteAddress| requires DNS lookups for each write()
+// which is quite inefficient; applications should replace it with the IP address
+// of the peer after receiving a response packet.
 await writer.ready;
 writer.write({
     data: encoder.encode(message),
@@ -527,8 +529,7 @@ let tcpServerSocketReader = tcpServerSocketReadable.getReader();
 // |value| is an accepted TCPSocket.
 let { value: tcpSocket, done } = await tcpServerSocketReader.read();
 if (done) {
-  // stream is exhausted...
-  // happens either on socket errors or explicit socket.close();
+  // this happens only if readable.releaseLock() or reader.cancel() is called manually.
   return;
 }
 tcpServerSocketReader.releaseLock();
