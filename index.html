@@ -1094,8 +1094,8 @@
             Enables or disables `IPV6_V6ONLY` to either restrict connections to IPv6 only or
             allow both IPv4/IPv6 connections.
             <div class="note">
-              This field can only be supplied in {{UDPSocket/bound}} {{UDPSocket/mode}} when `localAddress` is equal
-              to the IPv6 unspecified address (`::`).
+              This field can only be supplied in {{UDPSocket/bound}} {{UDPSocket/mode}} when
+              `localAddress` is equal to the IPv6 unspecified address (`::`).
             </div>
             <div class="note">
               Leave this field empty to retain default platform-defined behavior
@@ -1796,8 +1796,8 @@
         <li>
           If |options|["{{TCPServerSocketOptions/backlog}}"] is equal to 0, throw a {{TypeError}}.
         <li>
-          If |options|["{{TCPServerSocketOptions/ipv6Only}}"] is set but `localAddress` is not equal
-          to IPv6 unspecified address (`::`), throw a {{TypeError}}.
+          If |options|["{{TCPServerSocketOptions/ipv6Only}}"] is true but `localAddress` is not equal
+          to the IPv6 unspecified address (`::`), throw a {{TypeError}}.
         <li>
           Perform the following steps [=in parallel=].
           <ol>
@@ -2089,7 +2089,7 @@
           If the application has previously called
           `opened.`{{TCPServerSocketOpenInfo/readable}}`.`{{ReadableStream/getReader()}},
           the stream is locked and the socket cannot be closed. This forces the developer to
-          decide how to handle any read operations that are in progress.
+          decide how to handle any accept operations that are in progress.
 
       </aside>
 
