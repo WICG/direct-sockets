@@ -266,6 +266,8 @@
           </dt>
           <dd>
             Indicates whether IPv4 or IPv6 record should be returned during DNS lookup.
+            If omitted, the OS will select the record type(s) to be queried automatically
+            depending on IPv4/IPv6 settings and reachability.
           </dd>
         </dl>
 
@@ -1079,6 +1081,8 @@
           </dt>
           <dd>
             Indicates whether IPv4 or IPv6 record should be returned during DNS lookup.
+            If omitted, the OS will select the record type(s) to be queried automatically
+            depending on IPv4/IPv6 settings and reachability.
             <div class="note">
               This field can only be supplied in {{UDPSocket/connected}} {{UDPSocket/mode}}.
             </div>
@@ -1166,6 +1170,8 @@
           </dt>
           <dd>
             Indicates whether IPv4 or IPv6 record should be returned during DNS lookup.
+            If omitted, the OS will select the record type(s) to be queried automatically
+            depending on IPv4/IPv6 settings and reachability.
             <div class="note">
               This field is always unset for {{UDPMessage}} instances received from
               {{UDPSocket/[[readable]]}} stream regardless of socket's operating {{UDPSocket/mode}}.
