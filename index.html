@@ -138,10 +138,6 @@
           not [=allowed to use=] the [=policy-controlled feature=] named "[=policy-controlled
           feature/direct-sockets=]", throw a
           "{{NotAllowedError}}" {{DOMException}}.
-          <!--
-          <li>
-            If only one of |options|["{{TCPSocketOptions/localAddress}}"] or |options|["{{TCPSocketOptions/localPort}}"] is specified, throw a {{TypeError}}.
-          -->
         <li>
           If |options|["{{TCPSocketOptions/keepAliveDelay}}"] is less than 1,000, throw a
           {{TypeError}}.
@@ -154,9 +150,8 @@
           Perform the following steps [=in parallel=].
           <ol>
             <li>
-              Invoke the operating system to open the TCP socket using the given |remoteAddress| and
-              |remotePort| and the
-              connection parameters (or their defaults) specified in |options|.
+              Invoke the operating system to open a TCP socket using the given |remoteAddress| and
+              |remotePort| and the connection parameters (or their defaults) specified in |options|.
             <li>
               If this fails for any reason, [=queue a global task=] on the [=relevant global
               object=] of
@@ -204,12 +199,19 @@
         <h4><dfn>TCPSocketOptions</dfn> dictionary</h4>
 
         <pre class="idl">
+          enum SocketDnsQueryType {
+            "ipv4",
+            "ipv6"
+          };
+
           dictionary TCPSocketOptions {
             [EnforceRange] unsigned long sendBufferSize;
             [EnforceRange] unsigned long receiveBufferSize;
 
             boolean noDelay = false;
             [EnforceRange] unsigned long keepAliveDelay;
+
+            SocketDnsQueryType dnsQueryType;
           };
         </pre>
 
@@ -258,6 +260,14 @@
             <div class="note">
               Keep-Alive is disabled by default.
             </div>
+          </dd>
+          <dt>
+            <dfn>dnsQueryType</dfn> member
+          </dt>
+          <dd>
+            Indicates whether IPv4 or IPv6 record should be returned during DNS lookup.
+            If omitted, the OS will select the record type(s) to be queried automatically
+            depending on IPv4/IPv6 settings and reachability.
           </dd>
         </dl>
 
@@ -812,7 +822,7 @@
     <pre class="idl">
       [Exposed=(Window,Worker), SecureContext]
       interface UDPSocket {
-        constructor(UDPSocketOptions options);
+        constructor(optional UDPSocketOptions options = {});
 
         readonly attribute Promise&lt;UDPSocketOpenInfo> opened;
         readonly attribute Promise&lt;undefined> closed;
@@ -862,7 +872,7 @@
         and received.
 
         <pre class="js">
-          const socket = new UDPSocket(/*remoteAddress=*/, /*remotePort=*/, /*options=*/);
+          const socket = new UDPSocket(/*options=*/);
         </pre>
 
         The developer should wait for the {{UDPSocket/opened}} promise to be resolved to gain access
@@ -878,6 +888,32 @@
         data from and sending data to the socket.
       </aside>
 
+      {{UDPSocket}} can operate in either {{UDPSocket/connected}} or {{UDPSocket/bound}} <dfn>mode</dfn> which
+      is decided based on the provided set of constructor options.
+
+      <ul>
+        <li>
+          In <dfn>connected</dfn> {{UDPSocket/mode}}, the UDP socket is associated with a specific destination
+          IP address and port number. This means that any data sent using the socket is automatically
+          sent to the specified destination without the need to specify the address and port every
+          time. This {{UDPSocket/mode}} is assumed when {{UDPSocketOptions/remoteAddress}} and
+          {{UDPSocketOptions/remotePort}} are specified in {{UDPSocketOptions}}.
+          <div class="note">
+            This {{UDPSocket/mode}} is useful for applications that require a constant communication channel
+            between two endpoints, such as real-time streaming applications.
+          </div>
+        <li>
+          In <dfn>bound</dfn> {{UDPSocket/mode}}, the UDP socket is bound to a specific local IP address and port
+          number. This means that any data received on that IP address and port is delivered to the
+          socket. Similarly, any data sent using the socket is sent from the bound IP address and
+          port. This {{UDPSocket/mode}} is assumed when {{UDPSocketOptions/localAddress}} is specified in
+          {{UDPSocketOptions}}.
+          <div class="note">
+            This {{UDPSocket/mode}} is useful for applications that need to listen for incoming data on a
+            specific port or interface, such as server applications that receive incoming messages
+            from multiple clients.
+          </div>
+      </ul>
 
       The {{UDPSocket/constructor()}} steps are:
 
@@ -888,6 +924,41 @@
           feature/direct-sockets=]", throw a
           "{{NotAllowedError}}" {{DOMException}}.
         <li>
+          If only one of |options|["{{UDPSocketOptions/remoteAddress}}"] and
+          |options|["{{UDPSocketOptions/remotePort}}"] is specified, throw a {{TypeError}}.
+        <li>
+          Alternatively, if both |options|["{{UDPSocketOptions/remoteAddress}}"] and
+          |options|["{{UDPSocketOptions/remotePort}}"] are specified, assume {{UDPSocket/connected}}
+          {{UDPSocket/mode}}.
+        <li>
+          If |options|["{{UDPSocketOptions/localPort}}"] is equal to 0 or specified without
+          |options|["{{UDPSocketOptions/localAddress}}"], throw a {{TypeError}}.
+        <li>
+          If |options|["{{UDPSocketOptions/localAddress}}"] is specified:
+          <ol>
+            <li>
+              If {{UDPSocket/connected}} {{UDPSocket/mode}} was previously inferred, throw a {{TypeError}}.
+            <li>
+              If |options|["{{UDPSocketOptions/localAddress}}"] is not a valid IP address,
+              throw a {{TypeError}}.
+            <li>
+              Assume {{UDPSocket/bound}} {{UDPSocket/mode}}.
+          </ol>
+        <li>
+          If no {{UDPSocket/mode}} has been inferred at this point, throw a {{TypeError}}.
+        <li>
+          If |options|["{{UDPSocketOptions/dnsQueryType}}"] is specified in {{UDPSocket/bound}}
+          {{UDPSocket/mode}}, throw a {{TypeError}}.
+         <li>
+          If |options|["{{UDPSocketOptions/ipv6Only}}"] is specified:
+          <ol>
+            <li>
+              If inferred {{UDPSocket/mode}} is {{UDPSocket/connected}}, throw a {{TypeError}}.
+            <li>
+              If |options|["{{UDPSocketOptions/localAddress}}"] is not equal to the IPv6
+              unspecified address (`::`), throw a {{TypeError}}.
+          </ol>
+        <li>
           If |options|["{{UDPSocketOptions/sendBufferSize}}"] is equal to 0, throw a {{TypeError}}.
         <li>
           If |options|["{{UDPSocketOptions/receiveBufferSize}}"] is equal to 0, throw a
@@ -896,14 +967,11 @@
           Perform the following steps [=in parallel=].
           <ol>
             <li>
-              Invoke the operating system to open the UDP socket using the given |remoteAddress| and
-              |remotePort| and the
-              parameters (or their defaults) specified in |options|.
+              Invoke the operating system to open a UDP socket using the inferred
+              {{UDPSocket/mode}} and the parameters (or their defaults) specified in |options|.
             <li>
               If this fails for any reason, [=queue a global task=] on the [=relevant global
-              object=] of
-              [=this=] using the [=UDPSocket task source=] to run the
-              following steps:
+              object=] of [=this=] using the [=UDPSocket task source=] to run the following steps:
               <ol>
                 <li>
                   [=Reject=] the {{UDPSocket/[[openedPromise]]}} with a "{{NetworkError}}"
@@ -914,8 +982,7 @@
               </ol>
             <li>
               On success, [=queue a global task=] on the [=relevant global object=] of
-              [=this=] using the [=UDPSocket task source=] to run the
-              following steps:
+              [=this=] using the [=UDPSocket task source=] to run the following steps:
               <ol>
                 <li>
                   [=initialize UDPSocket readable stream|Initialize=] {{UDPSocket/[[readable]]}}.
@@ -932,10 +999,18 @@
                 <li>
                   Populate the remaining fields of |openInfo| using the information provided by the
                   operating system:
-                  |openInfo|["{{UDPSocketOpenInfo/remoteAddress}}"],
-                  |openInfo|["{{UDPSocketOpenInfo/remotePort}}"],
-                  |openInfo|["{{UDPSocketOpenInfo/localAddress}}"] and
-                  |openInfo|["{{UDPSocketOpenInfo/localPort}}"].
+                  <ul>
+                    <li>
+                      For {{UDPSocket/bound}} {{UDPSocket/mode}}, populate only
+                      |openInfo|["{{UDPSocketOpenInfo/localAddress}}"] and
+                      |openInfo|["{{UDPSocketOpenInfo/localPort}}"].
+                    <li>
+                      For {{UDPSocket/connected}} {{UDPSocket/mode}}, populate
+                      |openInfo|["{{UDPSocketOpenInfo/localAddress}}"] and
+                      |openInfo|["{{UDPSocketOpenInfo/localPort}}"] as well as
+                      |openInfo|["{{UDPSocketOpenInfo/remoteAddress}}"] and
+                      |openInfo|["{{UDPSocketOpenInfo/remotePort}}"].
+                  </ul>
                 <li>
                   Resolve [=this=].{{UDPSocket/[[openedPromise]]}} with |openInfo|.
               </ol>
@@ -947,11 +1022,17 @@
 
         <pre class="idl">
           dictionary UDPSocketOptions {
-            required DOMString remoteAddress;
-            [EnforceRange] required unsigned short remotePort;
+            DOMString remoteAddress;
+            [EnforceRange] unsigned short remotePort;
+
+            DOMString localAddress;
+            [EnforceRange] unsigned short localPort;
 
             [EnforceRange] unsigned long sendBufferSize;
             [EnforceRange] unsigned long receiveBufferSize;
+
+            SocketDnsQueryType dnsQueryType;
+            boolean ipv6Only;
           };
         </pre>
 
@@ -969,6 +1050,19 @@
             The remote port to connect the socket to.
           </dd>
           <dt>
+            <dfn>localAddress</dfn> member
+          </dt>
+          <dd>
+            The local IP address to bind the socket to.
+          </dd>
+          <dt>
+            <dfn>localPort</dfn> member
+          </dt>
+          <dd>
+            The local port to bind the socket to. Leave this field empty to let the OS pick one on
+            its own.
+          </dd>
+          <dt>
             <dfn>sendBufferSize</dfn> member
           </dt>
           <dd>
@@ -982,7 +1076,111 @@
             The requested receive buffer size, in bytes.
             If not specified, then platform-specific default value will be used.
           </dd>
+          <dt>
+            <dfn>dnsQueryType</dfn> member
+          </dt>
+          <dd>
+            Indicates whether IPv4 or IPv6 record should be returned during DNS lookup.
+            If omitted, the OS will select the record type(s) to be queried automatically
+            depending on IPv4/IPv6 settings and reachability.
+            <div class="note">
+              This field can only be supplied in {{UDPSocket/connected}} {{UDPSocket/mode}}.
+            </div>
+          </dd>
+          <dt>
+            <dfn>ipv6Only</dfn> member
+          </dt>
+          <dd>
+            Enables or disables `IPV6_V6ONLY` to either restrict connections to IPv6 only or
+            allow both IPv4/IPv6 connections.
+            <div class="note">
+              This field can only be supplied in {{UDPSocket/bound}} {{UDPSocket/mode}} when `localAddress` is equal
+              to the IPv6 unspecified address (`::`).
+            </div>
+            <div class="note">
+              Leave this field empty to retain default platform-defined behavior
+              (`true` on Windows and `false` on Posix).
+            </div>
+          </dd>
         </dl>
+      </section>
+
+      <section data-dfn-for="UDPMessage">
+
+        <h4><dfn>UDPMessage</dfn> dictionary</h4>
+
+        {{UDPSocket/[[readable]]}} and {{UDPSocket/[[writable]]}} streams operate on
+        {{UDPMessage}} objects.
+
+        <pre class="idl">
+          dictionary UDPMessage {
+            BufferSource data;
+            DOMString remoteAddress;
+            unsigned short remotePort;
+            SocketDnsQueryType dnsQueryType;
+          };
+        </pre>
+
+        <dl>
+          <dt>
+            <dfn>data</dfn> member
+          </dt>
+          <dd>
+            The user message represented as {{BufferSource}}.
+            <div class="note">
+              For {{UDPSocket/[[readable]]}} the underlying type is always {{Uint8Array}}.
+            </div>
+          </dd>
+          <dt>
+            <dfn>remoteAddress</dfn> member
+          </dt>
+          <dd>
+            The remote address where the message came from or where it should be send to.
+            <div class="note">
+              <ul>
+                <li>
+                  In {{UDPSocket/connected}} {{UDPSocket/mode}} this field is always unspecified; attempting to
+                  set it while writing will throw (see {{UDPSocket/[[writable]]}}).
+                <li>
+                  In {{UDPSocket/bound}} {{UDPSocket/mode}} this field represents the remote host that this
+                  packet came from for {{UDPSocket/[[readable]]}} or instructs the socket about
+                  the destination host for {{UDPSocket/[[writable]]}}.
+              </ul>
+            </div>
+          </dd>
+          <dt>
+            <dfn>remotePort</dfn> member
+          </dt>
+          <dd>
+            The remote port where the message came from or where it should be sent to.
+            <div class="note">
+              <ul>
+                <li>
+                  In {{UDPSocket/connected}} {{UDPSocket/mode}} this field is always unspecified; attempting to set it while
+                  writing will throw (see {{UDPSocket/[[writable]]}}).
+                <li>
+                  In {{UDPSocket/bound}} {{UDPSocket/mode}} this field represents the remote port that this packet came from for
+                  {{UDPSocket/[[readable]]}} or instructs the socket about the destination port for
+                  {{UDPSocket/[[writable]]}}.
+              </ul>
+            </div>
+          </dd>
+          <dt>
+            <dfn>dnsQueryType</dfn> member
+          </dt>
+          <dd>
+            Indicates whether IPv4 or IPv6 record should be returned during DNS lookup.
+            If omitted, the OS will select the record type(s) to be queried automatically
+            depending on IPv4/IPv6 settings and reachability.
+            <div class="note">
+              This field is always unset for {{UDPMessage}} instances received from
+              {{UDPSocket/[[readable]]}} stream regardless of socket's operating {{UDPSocket/mode}}.
+              For {{UDPSocket/[[writable]]}} this can only be specified in {{UDPSocket/bound}} {{UDPSocket/mode}};
+              attempting to set the field in {{UDPSocket/connected}} {{UDPSocket/mode}} will throw.
+            </div>
+          </dd>
+        </dl>
+
       </section>
 
     </section>
@@ -1005,8 +1203,13 @@
               // |reader| has been canceled.
               break;
             }
+            // In {{UDPSocket/connected}} {{UDPSocket/mode}}:
             const { data } = value;
             // Do something with |data|...
+
+            // In {{UDPSocket/bound}} {{UDPSocket/mode}}:
+            const { data, remoteAddress, remotePort } = value;
+            // Do something with |data|, |remoteAddress| and |remotePort|...
           }
 
           reader.releaseLock();
@@ -1053,11 +1256,15 @@
                         <li>
                           Set |message|["{{UDPMessage/data}}"] to |chunk|.
                         <li>
-                          Set |message|["{{UDPMessage/remoteAddress}}"] to the source address of the
-                          packet.
-                        <li>
-                          Set |message|["{{UDPMessage/remotePort}}"] to the source port of the
-                          packet.
+                          If the socket is operating in {{UDPSocket/bound}} {{UDPSocket/mode}}:
+                          <ol>
+                            <li>
+                              Set |message|["{{UDPMessage/remoteAddress}}"] to the source address
+                              of the packet.
+                            <li>
+                              Set |message|["{{UDPMessage/remotePort}}"] to the source port of the
+                              packet.
+                          </ol>
                         <li>
                           Invoke [=ReadableStream/enqueue=] on
                           [=this=].{{UDPSocket/[[readable]]}} with |message|.
@@ -1122,50 +1329,6 @@
           </ol>
       </ol>
 
-      <section data-dfn-for="UDPMessage">
-
-        <h4><dfn>UDPMessage</dfn> dictionary</h4>
-
-        <pre class="idl">
-          dictionary UDPMessage {
-            BufferSource data;
-            DOMString remoteAddress;
-            unsigned short remotePort;
-          };
-        </pre>
-
-        <dl>
-          <dt>
-            <dfn>data</dfn> member
-          </dt>
-          <dd>
-            The user message represented as {{BufferSource}}.
-            <div class="note">
-              Note that for {{UDPSocket/[[readable]]}} the underlying type is always {{Uint8Array}}.
-            </div>
-          </dd>
-          <dt>
-            <dfn>remoteAddress</dfn> member
-          </dt>
-          <dd>
-            The remote address where the message came from.
-          </dd>
-          <dt>
-            <dfn>remotePort</dfn> member
-          </dt>
-          <dd>
-            The remote port where the message came from.
-          </dd>
-          <div class="note">
-            This spec currently only covers the case of "connected" UDP sockets
-            which are supposed to exchange packets with one address specified in the constructor.
-            For this reason {{UDPSocket/[[writable]]}} doesn't support sending packets to arbitrary
-            {{UDPMessage/remoteAddress}}/{{UDPMessage/remotePort}}.
-          </div>
-        </dl>
-
-      </section>
-
     </section>
 
     <section>
@@ -1183,10 +1346,19 @@
           const { writable } = await socket.opened;
           const writer = writable.getWriter();
 
+          // In {{UDPSocket/connected}} {{UDPSocket/mode}}:
           const message = {
             data: encoder.encode("PING")
           };
 
+          // In {{UDPSocket/bound}} {{UDPSocket/mode}}:
+          const message = {
+            data: encoder.encode("PING"),
+            remoteAddress: ...,
+            remotePort: ...
+          };
+
+          await writer.ready;
           await writer.write(message);
 
           writer.releaseLock();
@@ -1222,25 +1394,35 @@
               |promise|. Otherwise, save the result of the conversion in
               |message|.
             <li>
+              If either |message|["{{UDPMessage/remoteAddress}}"],
+              |message|["{{UDPMessage/remotePort}}"] or
+              |message|["{{UDPMessage/dnsQueryType}}"] <b>is specified</b> in
+              {{UDPSocket/connected}} {{UDPSocket/mode}}, reject |promise| with a
+              {{TypeError}} and return |promise|.
+            <li>
               If either |message|["{{UDPMessage/remoteAddress}}"]
-              or |message|["{{UDPMessage/remotePort}}"] is specified,
-              reject |promise| with a {{TypeError}} and return |promise|.
-              <div class="note">
-                The |message|["{{UDPMessage/remoteAddress}}"]
-                and |message|["{{UDPMessage/remotePort}}"]
-                currently have no effect on sending packets since
-                the UDP socket is only allowed to operate in the connected mode.
-              </div>
+              or |message|["{{UDPMessage/remotePort}}"] <b>is not specified</b> in
+              {{UDPSocket/bound}} {{UDPSocket/mode}}, reject |promise| with a
+              {{TypeError}} and return |promise|.
             <li>
               [=Get a copy of the buffer source=] |message|["{{UDPMessage/data}}"] and save the
-              result in
-              |bytes|.
+              result in |bytes|.
             <li>
               [=In parallel=], run the following steps:
               <ol>
                 <li>
                   Invoke the operating system to send |bytes| to the socket.
-
+                  <ul>
+                    <li>
+                      In {{UDPSocket/connected}} {{UDPSocket/mode}} the data is routed to the
+                      address/port specified upon construction.
+                    <li>
+                      In {{UDPSocket/bound}} {{UDPSocket/mode}} the data is routed to
+                      |message|["{{UDPMessage/remoteAddress}}"] and
+                      |message|["{{UDPMessage/remotePort}}"].
+                      |message|["{{UDPMessage/dnsQueryType}}"] can be optionally supplied to
+                      control whether DNS resolution routine returns an IPv4 or an IPv6 record.
+                  </ul>
                   <div class="note">
                     The operating system may return from this operation once
                     |bytes| has been queued for transmission rather than after it
