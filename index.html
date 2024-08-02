@@ -58,7 +58,11 @@
     </h2>
 
     <pre class="idl">
-      [Exposed=(Window,Worker), SecureContext]
+      [
+        Exposed=(Window,DedicatedWorker),
+        SecureContext,
+        IsolatedContext
+      ]
       interface TCPSocket {
         constructor(DOMString remoteAddress,
                     unsigned short remotePort,
@@ -820,7 +824,11 @@
     </h2>
 
     <pre class="idl">
-      [Exposed=(Window,Worker), SecureContext]
+      [
+        Exposed=(Window,DedicatedWorker),
+        SecureContext,
+        IsolatedContext
+      ]
       interface UDPSocket {
         constructor(optional UDPSocketOptions options = {});
 
@@ -1726,7 +1734,11 @@
     </h2>
 
     <pre class="idl">
-      [Exposed=(Window,Worker), SecureContext]
+      [
+        Exposed=(Window,DedicatedWorker),
+        SecureContext,
+        IsolatedContext
+      ]
       interface TCPServerSocket {
         constructor(DOMString localAddress,
                     optional TCPServerSocketOptions options = {});
