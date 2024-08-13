@@ -56,7 +56,7 @@ This [`Permissions-Policy`](https://chromestatus.com/feature/5745992911552512) h
 
 The API is planned to be available only in
 [Isolated Web Apps](https://github.com/WICG/isolated-web-apps/blob/main/README.md)
-which themselves provide a decent level of security thanks to a transparent update model and strict Content Security Policy. Nevertheless, user agents will need to carefully consider when to make the Direct Sockets API available to web applications, and what UI will be shown to the user.
+which themselves provide a decent level of security thanks to a transparent update model and strict Content Security Policy.
 
 ### Threat
 
@@ -80,7 +80,7 @@ MITM attackers may hijack plaintext connections created using the API.
 
 #### Mitigation
 
-User agents should reject connection attempts when [Content Security Policy](https://w3c.github.io/webappsec-csp/) allows the `unsafe-eval` source expression. This prevents sites from executing [eval()](https://tc39.es/ecma262/#sec-eval-x) on data retrieved using this API.
+This API is supposed to be used in Isolated Web Apps which employ a strict Content Security Policy that makes using external resources (i.e. the ones not originating from the Web Bundle itself) difficult -- in particular, prohibit `eval()` calls on the retrieved data thanks to `script-src 'self'` in the CSP.
 
 We should also facilitate use of TLS on TCP connections.
 
