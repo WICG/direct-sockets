@@ -155,7 +155,7 @@
           <ol>
             <li>
               If |remoteAddress| resolves to an IP address belonging to the
-              <a href="https://wicg.github.io/private-network-access/#ip-address-space-private">private network address space</a> and [=this=]'s [=relevant global object=]'s [=associated Document=] is
+              [=IP address space/private=] network address space and [=this=]'s [=relevant global object=]'s [=associated Document=] is
               not [=allowed to use=] the [=policy-controlled feature=] named "[=policy-controlled feature/direct-sockets-private=]", [=queue a global task=] on the [=relevant global
               object=] of
               [=this=] using the [=TCPSocket task source=] to run the
@@ -991,7 +991,7 @@
           <ol>
             <li>
               If the inferred {{UDPSocket/mode}} is {{UDPSocket/connected}} and |remoteAddress| resolves to an IP address belonging to the
-              <a href="https://wicg.github.io/private-network-access/#ip-address-space-private">private network address space</a> and [=this=]'s [=relevant global object=]'s [=associated Document=] is
+              [=IP address space/private=] network address space and [=this=]'s [=relevant global object=]'s [=associated Document=] is
               not [=allowed to use=] the [=policy-controlled feature=] named "[=policy-controlled feature/direct-sockets-private=]", [=queue a global task=] on the [=relevant global
               object=] of
               [=this=] using the [=UDPSocket task source=] to run the
@@ -2223,9 +2223,7 @@
 
       <p>
         This specification defines a feature that controls whether {{TCPSocket}} and {{UDPSocket}}
-        classes might connect to addresses belonging to the
-        <a href="https://wicg.github.io/private-network-access/#ip-address-space-private">private network address space</a>.
-
+        classes might connect to addresses belonging to the [=IP address space/private=] network address space.
       <p>
         The feature name for this feature is "<dfn
           data-dfn-for="policy-controlled feature"><code>direct-sockets-private</code></dfn>"`.
@@ -2241,11 +2239,11 @@
         <ul>
           <li>
             For {{TCPSocket}}, the {{TCPSocket/[[openedPromise]]}} will be rejected if the resolved address belongs to the
-            <a href="https://wicg.github.io/private-network-access/#ip-address-space-private">private network address space</a>.
+            [=IP address space/private=] network address space.
           <li>
             For {{UDPSocket}} in {{UDPSocket/connected}} {{UDPSocket/mode}}, the {{UDPSocket/[[openedPromise]]}}
             will be rejected if the resolved address belongs to the
-            <a href="https://wicg.github.io/private-network-access/#ip-address-space-private">private network address space</a>.
+            [=IP address space/private=] network address space.
           <li>
             For {{UDPSocket}} in {{UDPSocket/bound}} {{UDPSocket/mode}}, the {{UDPSocket/[[openedPromise]]}}
             will be rejected unconditionally.
