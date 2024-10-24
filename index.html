@@ -9,7 +9,7 @@
   <script src="https://www.w3.org/Tools/respec/respec-w3c" class="remove" defer></script>
   <script class='remove'>
     var respecConfig = {
-      specStatus: "unofficial",
+      specStatus: "CG-DRAFT",
       github: {
         repoURL: "WICG/direct-sockets",
         branch: "main"
@@ -32,7 +32,7 @@
         },
       ],
       latestVersion: null,
-      xref: ["web-platform", "streams", "permissions-policy", "HTML", "infra", "DOM", "webidl", "isolated-contexts"],
+      xref: ["web-platform", "streams", "permissions-policy", "HTML", "infra", "DOM", "webidl", "isolated-contexts", "private-network-access"],
       // eventually add mdn: true, and caniuse: "direct-sockets"
     };
   </script>
@@ -154,10 +154,25 @@
           Perform the following steps [=in parallel=].
           <ol>
             <li>
+              If |remoteAddress| resolves to an IP address belonging to the
+              [=IP address space/private=] network address space and [=this=]'s [=relevant global object=]'s [=associated Document=] is
+              not [=allowed to use=] the [=policy-controlled feature=] named "[=policy-controlled feature/direct-sockets-private=]", [=queue a global task=] on the [=relevant global
+              object=] of
+              [=this=] using the [=TCPSocket task source=] to run the
+              following steps:
+              <ol>
+                <li>
+                  [=Reject=] the {{TCPSocket/[[openedPromise]]}} with a "{{NotAllowedError}}"
+                  {{DOMException}}.
+                <li>
+                  [=Reject=] the {{TCPSocket/[[closedPromise]]}} with a "{{NotAllowedError}}"
+                  {{DOMException}}.
+              </ol>
+            <li>
               Invoke the operating system to open a TCP socket using the given |remoteAddress| and
               |remotePort| and the connection parameters (or their defaults) specified in |options|.
             <li>
-              If this fails for any reason, [=queue a global task=] on the [=relevant global
+              If this fails for any other reason, [=queue a global task=] on the [=relevant global
               object=] of
               [=this=] using the [=TCPSocket task source=] to run the
               following steps:
@@ -974,6 +989,39 @@
         <li>
           Perform the following steps [=in parallel=].
           <ol>
+            <li>
+              If the inferred {{UDPSocket/mode}} is {{UDPSocket/connected}} and |remoteAddress| resolves to an IP address belonging to the
+              [=IP address space/private=] network address space and [=this=]'s [=relevant global object=]'s [=associated Document=] is
+              not [=allowed to use=] the [=policy-controlled feature=] named "[=policy-controlled feature/direct-sockets-private=]", [=queue a global task=] on the [=relevant global
+              object=] of
+              [=this=] using the [=UDPSocket task source=] to run the
+              following steps:
+              <ol>
+                <li>
+                  [=Reject=] the {{UDPSocket/[[openedPromise]]}} with a "{{NotAllowedError}}"
+                  {{DOMException}}.
+                <li>
+                  [=Reject=] the {{UDPSocket/[[closedPromise]]}} with a "{{NotAllowedError}}"
+                  {{DOMException}}.
+              </ol>
+            <li>
+              If the inferred {{UDPSocket/mode}} is {{UDPSocket/bound}} and either [=this=]'s [=relevant global object=]'s [=associated Document=] is
+              not [=allowed to use=] the [=policy-controlled feature=] named "[=policy-controlled feature/direct-sockets-private=]"
+              or the requested |localPort| is less than 1024, [=queue a global task=] on the [=relevant global object=] of
+              [=this=] using the [=UDPSocket task source=] to run the
+              following steps:
+              <ol>
+                <li>
+                  [=Reject=] the {{UDPSocket/[[openedPromise]]}} with a "{{NotAllowedError}}"
+                  {{DOMException}}.
+                <li>
+                  [=Reject=] the {{UDPSocket/[[closedPromise]]}} with a "{{NotAllowedError}}"
+                  {{DOMException}}.
+              </ol>
+
+              <div class="note">
+                While these conditions could technically be checked at construction time, they're deliberately addressed here to unify the behavior with {{UDPSocket/connected}} {{UDPSocket/mode}}.
+              </div>
             <li>
               Invoke the operating system to open a UDP socket using the inferred
               {{UDPSocket/mode}} and the parameters (or their defaults) specified in |options|.
@@ -1814,6 +1862,21 @@
           Perform the following steps [=in parallel=].
           <ol>
             <li>
+              If the requested |localPort| is less than 32678, [=queue a global task=] on the [=relevant global object=] of
+              [=this=] using the [=TCPServerSocket task source=] to run the following steps:
+              <ol>
+                <li>
+                  [=Reject=] the {{TCPServerSocket/[[openedPromise]]}} with a "{{NotAllowedError}}"
+                  {{DOMException}}.
+                <li>
+                  [=Reject=] the {{TCPServerSocket/[[closedPromise]]}} with a "{{NotAllowedError}}"
+                  {{DOMException}}.
+              </ol>
+              <div class="note">
+                While this condition could technically be checked at construction time, it's deliberately addressed here
+                to allow for potentially loosening it with additional user-facing permissions.
+              </div>
+            <li>
               Invoke the operating system to open a TCP server socket using the given |localAddress|
               and the connection parameters (or their defaults) specified in |options|.
             <li>
@@ -2137,20 +2200,54 @@
       <h3>Permissions Policy</h3>
 
       <p>
-        This specification defines a feature that controls whether {{TCPSocket}} and {{UDPSocket}}
-        classes may be created.
+        This specification defines a feature that controls whether {{TCPSocket}}, {{UDPSocket}}
+        and {{TCPServerSocket}} classes may be created.
 
       <p>
         The feature name for this feature is "<dfn
           data-dfn-for="policy-controlled feature"><code>direct-sockets</code></dfn>"`.
 
       <p>
-        The default allowlist for this feature is `'self'`.
+        The default allowlist for this feature is `'none'`.
 
       <div class="note">
         A document’s permission policy determines whether a
         `new TCPSocket(...)`, `new UDPSocket(...)` or `new TCPServerSocket(...)` call rejects with
         a {{"NotAllowedError"}} {{DOMException}}.
+      </div>
+
+    </section>
+
+    <section id="permissions-policy-pna">
+      <h3>Permissions Policy (Private Network Access)</h3>
+
+      <p>
+        This specification defines a feature that controls whether {{TCPSocket}} and {{UDPSocket}}
+        classes might connect to addresses belonging to the [=IP address space/private=] network address space.
+      <p>
+        The feature name for this feature is "<dfn
+          data-dfn-for="policy-controlled feature"><code>direct-sockets-private</code></dfn>"`.
+
+      <p>
+        The default allowlist for this feature is `'none'`.
+
+      <div class="note">
+        A document’s permission policy determines whether a {{TCPSocket}}
+        {{TCPSocket/[[openedPromise]]}} or {{UDPSocket}} {{UDPSocket/[[openedPromise]]}} promise rejects with
+        a {{"NotAllowedError"}} {{DOMException}}.
+
+        <ul>
+          <li>
+            For {{TCPSocket}}, the {{TCPSocket/[[openedPromise]]}} will be rejected if the resolved address belongs to the
+            [=IP address space/private=] network address space.
+          <li>
+            For {{UDPSocket}} in {{UDPSocket/connected}} {{UDPSocket/mode}}, the {{UDPSocket/[[openedPromise]]}}
+            will be rejected if the resolved address belongs to the
+            [=IP address space/private=] network address space.
+          <li>
+            For {{UDPSocket}} in {{UDPSocket/bound}} {{UDPSocket/mode}}, the {{UDPSocket/[[openedPromise]]}}
+            will be rejected unconditionally.
+        </ul>
       </div>
 
     </section>
