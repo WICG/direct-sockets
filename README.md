@@ -7,9 +7,11 @@ This is a proposal for a future Direct Sockets web platform API.
 ## Links
 
 * [Discourse thread](https://discourse.wicg.io/t/filling-the-remaining-gap-between-websocket-webrtc-and-webtranspor/4366)
-* [Explainer document](docs/explainer.md), a high-level overview of the proposal.
+* [Explainer document](docs/explainer.md), a high-level overview of the Direct Sockets proposal.
 * [Specification](https://wicg.github.io/direct-sockets/)
 * [Self-Review Questionnaire: Security and Privacy](docs/security-privacy-self-review.md)
+
+* [Multicast explainer](docs//multicast-explainer.md), a high-level overview of Multicast capabilities in Direct Sockets.
 
 ## Examples
 
