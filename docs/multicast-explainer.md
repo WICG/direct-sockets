@@ -6,10 +6,10 @@
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-- [Gloal](#gloal)
 - [What is Multicast?](#what-is-multicast)
-- [Similar functionality](#similar-functionality)
 - [Use cases](#use-cases)
+- [Similar functionality](#similar-functionality)
+- [Permissions Policy integration](#permissions-policy-integration)
 - [Sending datagrams example](#sending-datagrams-example)
 - [Receiving datagrams example](#receiving-datagrams-example)
 - [IDL Definitions](#idl-definitions)
@@ -20,10 +20,6 @@
 - [Privacy considerations](#privacy-considerations)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
-## Gloal
-Allow [Isolated Web Apps](https://github.com/WICG/isolated-web-apps) to join/leave multicast groups and to specify multicast settings like time to live for sending datagrams using [Direct Sockets API](https://github.com/WICG/direct-sockets/blob/main/docs/explainer.md).
-Only on [Managed by Admin devices](https://wicg.github.io/WebApiDevice/managed_config/).
 
 ## What is Multicast?
 Multicast sockets are a way of one to many network communication. It is possible only for UDP datagram packets to be sent to a multicast group, and all subscribers would receive it.
@@ -46,8 +42,21 @@ Global : The whole world.
 
 ## Similar functionality
 
-ChromeApp api [sockets.udp](https://developer.chrome.com/docs/apps/reference/sockets/udp) already has support for all necessary functions for multicast socket. The proposal is basically to port those api’s to open web (IWA).<br>
-The reason why it is restricted to IWA, is because the whole api is part of the DirectSockets which are IWA only. More about threats can be found in [DirectSocket explainer](https://github.com/WICG/direct-sockets/blob/main/docs/explainer.md), in short, this api is considered dangerous primarily because it allows for unencrypted, unsecured connection via any unknown protocol with potential vulnerabilities, and more importantly it allows access to private network, for example, it can be used to scan all possible devices on private network for fingerprinting.
+ChromeApp api [sockets.udp](https://developer.chrome.com/docs/apps/reference/sockets/udp) already has support for all necessary functions for multicast socket. The proposal is basically to port those api’s to [Isolated Web Apps](https://github.com/WICG/isolated-web-apps/blob/main/README.md).<br>
+The reason why it is restricted to Isolated Web Apps, is because the whole api is part of the DirectSockets which are IWA only. More about threats can be found in [DirectSocket explainer](https://github.com/WICG/direct-sockets/blob/main/docs/explainer.md), in short, this api is considered high-risk primarily because it allows unencrypted, unsecured connection via arbitrary protocols (which might have vulnerabilities) and, more importantly, enables web applications to interact with (and potentially control) devices on private networks.
+
+## Permissions Policy integration
+
+This specification defines a policy-controlled permission identified by the string `direct-sockets-multicast`.
+
+```
+Permissions-Policy: direct-sockets-multicast=(self)
+```
+This [`Permissions-Policy`](https://chromestatus.com/feature/5745992911552512) header determines whether 
+`multicastController.joinGroup()`, `multicastController.leaveGroup()` call or providing multicast params to
+`new UDPSocket(..)` immediately rejects with SecurityError.
+
+* In a similar fashion, apple requires that apps with multicast declare [multicast entitlment](https://developer.apple.com/documentation/bundleresources/entitlements/com.apple.developer.networking.multicast). 
 
 ## Sending datagrams example
 
@@ -187,13 +196,8 @@ dictionary UDPSocketOpenInfo : SocketOpenInfo {
 };
 
 [
-    ActiveScriptWrappable,
-    Exposed(
-      Window DirectSockets,
-      DedicatedWorker DirectSockets,
-      SharedWorker DirectSocketsInSharedWorkers,
-      ServiceWorker DirectSocketsInServiceWorkers
-    ),
+    RuntimeEnabled=MulticastInDirectSockets,
+    Exposed=(Window, DedicatedWorker),
     SecureContext,
     IsolatedContext
 ]
@@ -252,10 +256,3 @@ Additionally, routers have control, whether they send multicast packets or drop 
 
 ## Privacy considerations
 The api allows to list all devices on a private network if they use device discovery protocol like mDNS. Further, this can be used for fingerprinting.
-
-## Security/Privacy mitigations
-As a mitigation, the new permission policy `direct-sockets-multicast` is required to use Multicast capabilities.
-If it is not provided, then specifying multicast parameters on UDPSocketOptions
-or calling joinGroup/leaveGroup will result in SecurityError.
-
-* In a similar fashion, apple requires that apps with multicast declare [multicast entitlment](https://developer.apple.com/documentation/bundleresources/entitlements/com.apple.developer.networking.multicast). 
