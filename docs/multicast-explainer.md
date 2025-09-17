@@ -27,13 +27,17 @@ Multicast sockets are a way of one to many network communication. It is possible
 In IPv4, any address between 224.0.0.0 to 239.255.255.255 can be used as a multicast address.
 In IPv6 multicast addresses, the first 8 bits are all ones, i.e. FF00::/8. Further, bit 113-116 represents the scope of the address, which can be either one of the following 4: Global, Site-local, Link-local, Node-local.
 
-Node-Local : Same device
+Node-Local 
+: Same device
 
-Link-Local : Link-local scope confines packets to the local network segment or link. This means the packet will reach all multicast listeners on the same physical or logical network (like a single Ethernet LAN or Wi-Fi network), but it will not be forwarded by routers to other network segments. This is commonly used for service discovery and autoconfiguration protocols, such as Neighbor Discovery Protocol (NDP).
+Link-Local 
+: This scope confines packets to the local network segment or link. This means the packet will reach all multicast listeners on the same physical or logical network (like a single Ethernet LAN or Wi-Fi network), but it will not be forwarded by routers to other network segments. This is commonly used for service discovery and autoconfiguration protocols, such as Neighbor Discovery Protocol (NDP).
 
-Site-local scope is larger than link-local. It is intended for use within a specific site or organization. Packets sent with this scope can be forwarded by routers, but they should not leave the boundaries of the organization's network. This is useful for enterprise-wide services where you want to reach all nodes within a company's network but prevent the traffic from leaking onto the public internet.
+Site-local
+: This scope is larger than link-local. It is intended for use within a specific site or organization. Packets sent with this scope can be forwarded by routers, but they should not leave the boundaries of the organization's network. This is useful for enterprise-wide services where you want to reach all nodes within a company's network but prevent the traffic from leaking onto the public internet.
 
-Global : The whole world.
+Global
+: The whole world.
 
 ## Use cases
 
@@ -42,8 +46,8 @@ Global : The whole world.
 
 ## Similar functionality
 
-ChromeApp api [sockets.udp](https://developer.chrome.com/docs/apps/reference/sockets/udp) already has support for all necessary functions for multicast socket. The proposal is basically to port those api’s to [Isolated Web Apps](https://github.com/WICG/isolated-web-apps/blob/main/README.md).<br>
-The reason why it is restricted to Isolated Web Apps, is because the whole api is part of the DirectSockets which are IWA only. More about threats can be found in [DirectSocket explainer](https://github.com/WICG/direct-sockets/blob/main/docs/explainer.md), in short, this api is considered high-risk primarily because it allows unencrypted, unsecured connection via arbitrary protocols (which might have vulnerabilities) and, more importantly, enables web applications to interact with (and potentially control) devices on private networks.
+ChromeApp API [sockets.udp](https://developer.chrome.com/docs/apps/reference/sockets/udp) already has support for all necessary functions for multicast socket. The proposal is basically to port those API’s to [Isolated Web Apps](https://github.com/WICG/isolated-web-apps/blob/main/README.md).
+The reason why it is restricted to Isolated Web Apps is because it is part of the Direct Sockets API which is also restricted to Isolated Web Apps. More about threats can be found in [Direct Sockets explainer](https://github.com/WICG/direct-sockets/blob/main/docs/explainer.md), in short, this API is considered high-risk primarily because it allows unencrypted, unsecured connection via arbitrary protocols (which might have vulnerabilities) and, more importantly, enables web applications to interact with (and potentially control) devices on private networks.
 
 ## Permissions Policy integration
 
@@ -56,11 +60,11 @@ This [`Permissions-Policy`](https://chromestatus.com/feature/5745992911552512) h
 `multicastController.joinGroup()`, `multicastController.leaveGroup()` call or providing multicast params to
 `new UDPSocket(..)` immediately rejects with SecurityError.
 
-* In a similar fashion, apple requires that apps with multicast declare [multicast entitlment](https://developer.apple.com/documentation/bundleresources/entitlements/com.apple.developer.networking.multicast). 
+* In a similar fashion, Apple requires that apps with multicast declare [multicast entitlment](https://developer.apple.com/documentation/bundleresources/entitlements/com.apple.developer.networking.multicast). 
 
 ## Sending datagrams example
 
-Everything is very similar to how direct sockets are used for sending data to a remote. The only difference is multicast options.
+Everything is very similar to how `UDPSocket` is used to send data to a remote. The only difference is additional options to control multicast behavior.
 
 ```javascript
 // Params that sender and receiver are agreed upon.
@@ -234,25 +238,26 @@ Gets the multicast group addresses the socket is currently joined to. The groups
 
 ## Which network interface will it use?
 
-It is not planned to add an ability to pick which network interface to use. It would complicate the api.
+It is not planned to add an ability to pick which network interface to use. It would complicate the API.
 Besides, right now there’s no way to get a networking interface ip address (in chrome apps, it was possible with https://developer.chrome.com/docs/apps/reference/system/network).
-ChromeApp https://developer.chrome.com/docs/apps/reference/sockets/udp api also does not give an ability to use a specific networking interface.
+The [sockets.udp](https://developer.chrome.com/docs/apps/reference/sockets/udp) API also does not give an ability to use a specific networking interface.
 
-For the reference, the C unix api gives such options: 
+For the reference, the C unix API gives such options: 
+```c
 group.imr_interface.s_addr = inet_addr("127.0.0.1");
+```
 
-DirectSocket implementation will use group.imr_interface.s_addr = INADD_ANY; 
+Direct Sockets implementations should set `group.imr_interface.s_addr` to `INADDR_ANY`;
 Which lets the OS pick the current active network interface.
 
 
 ## Security considerations
 
-> This api gives the opportunity to flood the network with packets.
+> This API gives the opportunity to flood the network with packets.
 
-For now, this functionality is supported only on Managed devices, meaning that Admins have complete control over the software that is installed, and only allowlisted by google IWA’s can be installed.
-However, in the future it is planned to make this api available also for Unmanaged use cases.
+By only providing this API to Isolated Web Apps the user agent can be more confident that the application has not been compromised. This allows users and system administrators to confidently grant this capability to trusted applications.
 
 Additionally, routers have control, whether they send multicast packets or drop them. In many setups dropping multicast packets is the default setting.
 
 ## Privacy considerations
-The api allows to list all devices on a private network if they use device discovery protocol like mDNS. Further, this can be used for fingerprinting.
+The API allows an application to list all devices on a private network if they use a device discovery protocol like mDNS. This can be used for fingerprinting.
