@@ -247,8 +247,8 @@ For the reference, the C unix API gives such options:
 group.imr_interface.s_addr = inet_addr("127.0.0.1");
 ```
 
-Direct Sockets implementations should set `group.imr_interface.s_addr` to `INADDR_ANY`;
-Which lets the OS pick the current active network interface.
+Direct Sockets implementations should set `group.imr_interface.s_addr` to `INADDR_ANY`
+which lets the OS pick the current active network interface.
 
 
 ## Security considerations
