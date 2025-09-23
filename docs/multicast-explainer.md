@@ -188,7 +188,7 @@ It corresponds to IP_MULTICAST_TTL / IPV6_MULTICAST_HOPS in Unix.
 
 * **multicastLoopback** - Sets whether multicast packets sent from the host to the multicast group will be looped back to the host.<br>
 The default is true.<br>
-Note: the behavior of loopback is slightly different between Windows and Unix-like systems. The inconsistency happens only when there is more than one application on the same host joined to the same multicast group while having different settings on multicast loopback mode. On Windows, the applications with loopback off will not RECEIVE the loopback packets; while on Unix-like systems, the applications with loopback off will not SEND the loopback packets to other applications on the same host. See [MSDN](https://learn.microsoft.com/en-us/windows/win32/winsock/ip-multicast-2)<br>
+Note: the behavior of loopback is slightly different between Windows and Unix-like systems. The inconsistency happens only when there is more than one application on the same host joined to the same multicast group while having different settings on multicast loopback mode. On Windows, the applications with loopback off will not RECEIVE the loopback packets; while on Unix-like systems, the applications with loopback off will not SEND the loopback packets to other applications on the same host. See [MSDN](https://learn.microsoft.com/en-us/windows/win32/winsock/ip-multicast-2).
 It corresponds to IP_MULTICAST_LOOP / IPV6_MULTICAST_LOOP in Unix.
 
 
