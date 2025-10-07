@@ -320,7 +320,7 @@
       </aside>
 
       The steps to <dfn data-lt="initialize TCPSocket readable stream">initialize the TCPSocket
-      readable stream</dfn> are:
+        readable stream</dfn> are:
 
       <ol>
         <li>
@@ -468,7 +468,7 @@
       </aside>
 
       The steps to <dfn data-lt="initialize TCPSocket writable stream">initialize the TCPSocket
-      writable stream</dfn> are:
+        writable stream</dfn> are:
 
       <ol>
         <li>
@@ -947,6 +947,13 @@
           feature/direct-sockets=]", throw a
           "{{NotAllowedError}}" {{DOMException}}.
         <li>
+          If any of |options|["{{UDPSocketOptions/multicastTimeToLive}}"],
+          |options|["{{UDPSocketOptions/multicastLoopback}}"],
+          or |options|["{{UDPSocketOptions/multicastAllowAddressSharing}}"] is specified, and [=this=]'s [=relevant
+          global object=]'s
+          [=associated Document=] is not [=allowed to use=] the [=policy-controlled feature=] named
+          "[=policy-controlled feature/direct-sockets-multicast=]", throw a {{TypeError}}.
+        <li>
           If only one of |options|["{{UDPSocketOptions/remoteAddress}}"] and
           |options|["{{UDPSocketOptions/remotePort}}"] is specified, throw a {{TypeError}}.
         <li>
@@ -972,7 +979,7 @@
         <li>
           If |options|["{{UDPSocketOptions/dnsQueryType}}"] is specified in {{UDPSocket/bound}}
           {{UDPSocket/mode}}, throw a {{TypeError}}.
-         <li>
+        <li>
           If |options|["{{UDPSocketOptions/ipv6Only}}"] is specified:
           <ol>
             <li>
@@ -1089,6 +1096,10 @@
 
             SocketDnsQueryType dnsQueryType;
             boolean ipv6Only;
+
+            [EnforceRange] octet multicastTimeToLive;
+            boolean multicastLoopback;
+            boolean multicastAllowAddressSharing;
           };
         </pre>
 
@@ -1156,6 +1167,36 @@
             <div class="note">
               Leave this field empty to retain default platform-defined behavior
               (`true` on Windows and `false` on Posix).
+            </div>
+          </dd>
+          <dt><dfn>multicastTimeToLive</dfn> member</dt>
+          <dd>This option controls how far your multicast packets can travel across a network.
+            Each time a packet passes through a router, its TTL value is decremented. If the TTL reaches zero, the
+            packet is discarded.
+            It corresponds to `IP_MULTICAST_TTL / IPV6_MULTICAST_HOPS` in Unix.
+            The default value is 1, which restricts packets to the local network segment.
+            <div class="note">
+              This option requires [=policy-controlled feature=] named "[=policy-controlled
+              feature/direct-sockets-multicast=]".
+            </div>
+          </dd>
+          <dt><dfn>multicastLoopback</dfn> member</dt>
+          <dd>Sets whether multicast packets sent from the host will be looped back to local listeners on the same host.
+            It corresponds to `IP_MULTICAST_LOOP / IPV6_MULTICAST_LOOP` in Unix.
+            The default is true.
+            <div class="note">
+              This option requires [=policy-controlled feature=] named "[=policy-controlled
+              feature/direct-sockets-multicast=]".
+            </div>
+          </dd>
+          <dt><dfn>multicastAllowAddressSharing</dfn> member</dt>
+          <dd>Whether address:port tuple reuse is allowed. This is useful for allowing multiple applications
+            to listen on the same address and port for multicast messages, such as in device discovery protocols.
+            It corresponds to `SO_REUSEADDR / SO_REUSEPORT` in Unix.
+            The default is false.
+            <div class="note">
+              This option requires [=policy-controlled feature=] named "[=policy-controlled
+              feature/direct-sockets-multicast=]".
             </div>
           </dd>
         </dl>
@@ -1273,7 +1314,7 @@
       </aside>
 
       The steps to <dfn data-lt="initialize UDPSocket readable stream">initialize the UDPSocket
-      readable stream</dfn> are:
+        readable stream</dfn> are:
 
       <ol>
         <li>
@@ -1428,7 +1469,7 @@
       </aside>
 
       The steps to <dfn data-lt="initialize UDPSocket writable stream">initialize the UDPSocket
-      writable stream</dfn> are:
+        writable stream</dfn> are:
 
       <ol>
         <li>
@@ -1613,6 +1654,8 @@
 
             DOMString localAddress;
             unsigned short localPort;
+
+            MulticastController multicastController;
           };
         </pre>
 
@@ -1652,6 +1695,15 @@
           </dt>
           <dd>
             Local port that the socket is bound to.
+          </dd>
+          <dt>
+            <dfn>multicastController</dfn> member
+          </dt>
+          <dd>
+            An object to control multicast group membership for receiving packets.
+            This member is only present if the socket is in {{UDPSocket/bound}} {{UDPSocket/mode}} and
+            the document has [=policy-controlled feature=] named "[=policy-controlled
+            feature/direct-sockets-multicast=]".
           </dd>
         </dl>
 
@@ -1772,6 +1824,173 @@
         <li>
           Return [=this=].{{UDPSocket/[[closedPromise]]}}.
       </ol>
+
+    </section>
+  </section>
+
+  <section data-dfn-for="MulticastController">
+    <h2>
+      {{MulticastController}} interface
+    </h2>
+
+    <p>
+      The {{MulticastController}} interface provides methods to join and leave multicast groups and to inspect
+      which groups have been joined. An instance of this interface is obtained from the
+      {{UDPSocketOpenInfo/multicastController}} member of the dictionary returned by the {{UDPSocket/opened}} promise.
+      This member is only present if the socket is in {{UDPSocket/bound}} {{UDPSocket/mode}} and
+      and [=this=]'s [=relevant global object=]'s [=associated Document=] is [=allowed to use=]
+      the [=policy-controlled feature=] named "[=policy-controlled feature/direct-sockets-multicast=]".
+    </p>
+
+    <pre class="idl">
+      [
+        Exposed=(Window, DedicatedWorker),
+        SecureContext,
+        IsolatedContext
+      ]
+      interface MulticastController {
+        Promise&lt;undefined> joinGroup(DOMString ipAddress);
+        Promise&lt;undefined> leaveGroup(DOMString ipAddress);
+        readonly attribute FrozenArray&lt;DOMString> joinedGroups;
+      };
+  </pre>
+
+    <p>
+      Methods on this interface typically complete asynchronously, queuing work on the <dfn>MulticastController task
+        source</dfn>.
+    </p>
+
+    <p>
+      Instances of {{MulticastController}} are created with the internal slots described in the following table:
+    <table class="simple" data-dfn-for="MulticastController">
+      <tr>
+        <th>Internal slot</th>
+        <th>Description (non-normative)</th>
+      </tr>
+      <tr>
+        <td><dfn>[[\socket]]</dfn></td>
+        <td>The {{UDPSocket}} that this {{MulticastController}} manages multicast membership for.</td>
+      </tr>
+      <tr>
+        <td><dfn>[[\joinedGroups]]</dfn></td>
+        <td>An set of the IP addresses of the multicast groups that have been successfully joined,
+          ordered from the earliest joined multicast group to the latest.
+        </td>
+      </tr>
+    </table>
+    </p>
+
+    <section>
+      <h3><dfn>joinGroup()</dfn> method</h3>
+
+      <aside class="example">
+        To receive multicast datagrams, a socket must join a multicast group.
+        <pre class="js">
+          const socket = new UDPSocket({ localAddress: '0.0.0.0', localPort: 12345, multicastAllowAddressSharing: true });
+          const { multicastController } = await socket.opened;
+          await multicastController.joinGroup("239.0.0.1");
+          console.log('Successfully joined group!');
+        </pre>
+      </aside>
+
+      <p>
+        The {{MulticastController/joinGroup(ipAddress)}} method joins the multicast group at the given `ipAddress` and
+        the `localPort` it was bound to.
+      </p>
+
+      The {{MulticastController/joinGroup(ipAddress)}} method steps are:
+      <ol>
+        <li>If `ipAddress` is not a valid IP address, throw a {{TypeError}}.</li>
+        <li>If the socket has already joined or in the process of joining a multicast group with
+          specified `ipAddress` throw an "`InvalidStateError`" {{DOMException}}.</li>
+        <li>If the associated {{MulticastController/[[socket]]}} was closed or aborted, throw an "`InvalidStateError`"
+          {{DOMException}}.</li>
+        <li>Let `promise` be [=a new promise=].</li>
+        <li>Perform the following steps [=in parallel=]:
+          <ol>
+            <li>Invoke the operating system to join the multicast group specified by `ipAddress`.</li>
+            <li>If this fails, [=queue a global task=] on the [=relevant global object=] of [=this=] using the
+              [=MulticastController task source=] to [=reject=] `promise` with a "`NetworkError`" {{DOMException}}.</li>
+            <li>On success, [=queue a global task=] on the [=relevant global object=] of [=this=] using the
+              [=MulticastController task source=] to run the following steps:
+              <ol>
+                <li>Add `ipAddress` to {{MulticastController/[[joinedGroups]]}}.</li>
+                <li>[=Resolve=] `promise` with `undefined`.</li>
+              </ol>
+            </li>
+          </ol>
+        </li>
+        <li>Return `promise`.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h3><dfn>leaveGroup()</dfn> method</h3>
+
+      <aside class="example">
+        An application can leave a multicast group to stop receiving datagrams. This is often done before closing the
+        socket if the socket will be repurposed.
+        <pre class="js">
+          await multicastController.leaveGroup("239.0.0.1");
+          console.log('Successfully left group!');
+        </pre>
+      </aside>
+
+      <p>
+        The {{MulticastController/leaveGroup(ipAddress)}} method leaves a multicast group previously joined via
+        {{MulticastController/joinGroup(ipAddress)}}.
+      </p>
+      <div class="note">
+        It is not necessary to leave joined multicast groups to clean up the resources. On the socket close, operating
+        system will
+        leave the groups automatically.
+      </div>
+
+      The {{MulticastController/leaveGroup(ipAddress)}} method steps are:
+      <ol>
+        <li>If `ipAddress` is not a valid IP address, throw a {{TypeError}}.</li>
+        <li>If the socket has never joined the multicast group at the `ipAddress`, already left it or in the process of
+          leaving it,
+          throw an "`InvalidStateError`" {{DOMException}}.</li>
+        <li>If the associated {{MulticastController/[[socket]]}} was closed or aborted, throw an "`InvalidStateError`"
+          {{DOMException}}.</li>
+        <li>Let `promise` be [=a new promise=].</li>
+        <li>Perform the following steps [=in parallel=]:
+          <ol>
+            <li>Invoke the operating system to leave the multicast group specified by `ipAddress`.</li>
+            <li>If this fails, [=queue a global task=] on the [=relevant global object=] of [=this=] using the
+              [=MulticastController task source=] to [=reject=] `promise` with a "`NetworkError`" {{DOMException}}.</li>
+            <li>On success, [=queue a global task=] on the [=relevant global object=] of [=this=] using the
+              [=MulticastController task source=] to run the following steps:
+              <ol>
+                <li>Remove `ipAddress` from {{MulticastController/[[joinedGroups]]}}.</li>
+                <li>[=Resolve=] `promise` with `undefined`.</li>
+              </ol>
+            </li>
+          </ol>
+        </li>
+        <li>Return `promise`.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h3><dfn>joinedGroups</dfn> attribute</h3>
+
+      <aside class="example">
+        The `joinedGroups` attribute provides a list of all multicast groups the socket is currently subscribed to.
+        <pre class="js">
+          await multicastController.joinGroup("239.0.0.1");
+          for (const group of multicastController.joinedGroups) {
+            console.log("Currently joined to: " + group);
+          }
+          // Logs: "Currently joined to: 239.0.0.1"
+    </pre>
+      </aside>
+
+      <p>
+        When read, the `joinedGroups` attribute returns a new `FrozenArray` containing the IP addresses in
+        {{MulticastController/[[joinedGroups]]}} ordered from earliest joined multicast group to the latest.
+      </p>
 
     </section>
   </section>
@@ -1989,7 +2208,7 @@
       </aside>
 
       The steps to <dfn data-lt="initialize TCPServerSocket readable stream">initialize the
-      TCPServerSocket readable stream</dfn> are:
+        TCPServerSocket readable stream</dfn> are:
 
       <ol>
         <li>
@@ -2247,6 +2466,39 @@
           <li>
             For {{UDPSocket}} in {{UDPSocket/bound}} {{UDPSocket/mode}}, the {{UDPSocket/[[openedPromise]]}}
             will be rejected unconditionally.
+        </ul>
+      </div>
+
+    </section>
+
+    <section id="permissions-policy-multicast">
+      <h3>Permissions Policy (Multicast)</h3>
+
+      <p>
+        This specification defines a feature that controls whether an application can
+        receive multicast packets using {{UDPSocket}} and {{MulticastController}}.
+      <p>
+        The feature name for this feature is "<dfn
+          data-dfn-for="policy-controlled feature"><code>direct-sockets-multicast</code></dfn>"`.
+
+      <p>
+        The default allowlist for this feature is `'none'`.
+
+      <div class="note">
+        A document’s permission policy determines whether multicast-specific members of {{UDPSocketOptions}}
+        can be used and whether the {{MulticastController}} interface is available.
+        <ul>
+          <li>
+            If an application without the permission attempts to construct a {{UDPSocket}}
+            with the {{UDPSocketOptions/multicastTimeToLive}}, {{UDPSocketOptions/multicastLoopback}},
+            or {{UDPSocketOptions/multicastAllowAddressSharing}} members set, the constructor will throw a
+            {{TypeError}}.
+          </li>
+          <li>
+            If an application without the permission successfully opens a {{UDPSocket}}, the
+            returned {{UDPSocketOpenInfo}} dictionary will not contain the {{UDPSocketOpenInfo/multicastController}}
+            member.
+          </li>
         </ul>
       </div>
 
