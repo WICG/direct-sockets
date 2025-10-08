@@ -950,9 +950,9 @@
           If any of |options|["{{UDPSocketOptions/multicastTimeToLive}}"],
           |options|["{{UDPSocketOptions/multicastLoopback}}"],
           or |options|["{{UDPSocketOptions/multicastAllowAddressSharing}}"] is specified, and [=this=]'s [=relevant
-          global object=]'s
-          [=associated Document=] is not [=allowed to use=] the [=policy-controlled feature=] named
-          "[=policy-controlled feature/direct-sockets-multicast=]", throw a {{TypeError}}.
+          global object=]'s [=associated Document=] is not [=allowed to use=] the 
+          [=policy-controlled feature=] named "[=policy-controlled feature/direct-sockets-multicast=]",
+           throw a "{{NotAllowedError}}" {{DOMException}}.
         <li>
           If only one of |options|["{{UDPSocketOptions/remoteAddress}}"] and
           |options|["{{UDPSocketOptions/remotePort}}"] is specified, throw a {{TypeError}}.
@@ -1190,8 +1190,9 @@
             </div>
           </dd>
           <dt><dfn>multicastAllowAddressSharing</dfn> member</dt>
-          <dd>Whether address:port tuple reuse is allowed. This is useful for allowing multiple applications
-            to listen on the same address and port for multicast messages, such as in device discovery protocols.
+          <dd>Whether multicast ipAddress:localPort tuple reuse is allowed. This is useful for allowing
+            multiple applications to listen on the same multicast group address and port for multicast messages,
+            such as in device discovery protocols.
             It corresponds to `SO_REUSEADDR / SO_REUSEPORT` in Unix.
             The default is false.
             <div class="note">
@@ -1856,8 +1857,7 @@
   </pre>
 
     <p>
-      Methods on this interface typically complete asynchronously, queuing work on the <dfn>MulticastController task
-        source</dfn>.
+      Methods on this interface typically complete asynchronously, queuing work on the [=UDPSocket task source=].
     </p>
 
     <p>
@@ -1886,7 +1886,7 @@
       <aside class="example">
         To receive multicast datagrams, a socket must join a multicast group.
         <pre class="js">
-          const socket = new UDPSocket({ localAddress: '0.0.0.0', localPort: 12345, multicastAllowAddressSharing: true });
+          const socket = new UDPSocket({ localAddress: '0.0.0.0', localPort: 12345 });
           const { multicastController } = await socket.opened;
           await multicastController.joinGroup("239.0.0.1");
           console.log('Successfully joined group!');
@@ -1909,11 +1909,11 @@
         <li>Perform the following steps [=in parallel=]:
           <ol>
             <li>Invoke the operating system to join the multicast group specified by `ipAddress`.</li>
-            <li>If this fails, [=queue a global task=] on the [=relevant global object=] of [=this=] using the
-              [=MulticastController task source=] to [=reject=] `promise` with a "`NetworkError`" {{DOMException}}.</li>
-            <li>On success, [=queue a global task=] on the [=relevant global object=] of [=this=] using the
-              [=MulticastController task source=] to run the following steps:
+            <li>[=Queue a global task=] on the [=relevant global object=] of [=this=] using the
+               [=UDPSocket task source=] to run the following steps:
               <ol>
+                <li>If the operating system returned a failure, [=reject=] `promise` with
+                   a "`NetworkError`" {{DOMException}} and abort these steps.</li>
                 <li>Add `ipAddress` to {{MulticastController/[[joinedGroups]]}}.</li>
                 <li>[=Resolve=] `promise` with `undefined`.</li>
               </ol>
@@ -1950,19 +1950,18 @@
       <ol>
         <li>If `ipAddress` is not a valid IP address, throw a {{TypeError}}.</li>
         <li>If the socket has never joined the multicast group at the `ipAddress`, already left it or in the process of
-          leaving it,
-          throw an "`InvalidStateError`" {{DOMException}}.</li>
+          leaving it, throw an "`InvalidStateError`" {{DOMException}}.</li>
         <li>If the associated {{MulticastController/[[socket]]}} was closed or aborted, throw an "`InvalidStateError`"
           {{DOMException}}.</li>
         <li>Let `promise` be [=a new promise=].</li>
         <li>Perform the following steps [=in parallel=]:
           <ol>
             <li>Invoke the operating system to leave the multicast group specified by `ipAddress`.</li>
-            <li>If this fails, [=queue a global task=] on the [=relevant global object=] of [=this=] using the
-              [=MulticastController task source=] to [=reject=] `promise` with a "`NetworkError`" {{DOMException}}.</li>
-            <li>On success, [=queue a global task=] on the [=relevant global object=] of [=this=] using the
-              [=MulticastController task source=] to run the following steps:
+            <li>[=Queue a global task=] on the [=relevant global object=] of [=this=] using the
+               [=UDPSocket task source=] to run the following steps:
               <ol>
+                <li>If the operating system returned a failure, [=reject=] `promise` with
+                   a "`NetworkError`" {{DOMException}} and abort these steps.</li>
                 <li>Remove `ipAddress` from {{MulticastController/[[joinedGroups]]}}.</li>
                 <li>[=Resolve=] `promise` with `undefined`.</li>
               </ol>
@@ -2495,9 +2494,9 @@
             {{TypeError}}.
           </li>
           <li>
-            If an application without the permission successfully opens a {{UDPSocket}}, the
-            returned {{UDPSocketOpenInfo}} dictionary will not contain the {{UDPSocketOpenInfo/multicastController}}
-            member.
+            If an application without the permission successfully opens a {{UDPSocket}} in {{UDPSocket/bound}} mode,
+            the returned {{UDPSocketOpenInfo}} dictionary will not contain the
+            {{UDPSocketOpenInfo/multicastController}} member.
           </li>
         </ul>
       </div>
