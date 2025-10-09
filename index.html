@@ -2491,7 +2491,7 @@
             If an application without the permission attempts to construct a {{UDPSocket}}
             with the {{UDPSocketOptions/multicastTimeToLive}}, {{UDPSocketOptions/multicastLoopback}},
             or {{UDPSocketOptions/multicastAllowAddressSharing}} members set, the constructor will throw a
-            {{TypeError}}.
+            "{{NotAllowedError}}" {{DOMException}}.
           </li>
           <li>
             If an application without the permission successfully opens a {{UDPSocket}} in {{UDPSocket/bound}} mode,
