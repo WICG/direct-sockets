@@ -154,19 +154,14 @@
           Perform the following steps [=in parallel=].
           <ol>
             <li>
-              If |remoteAddress| resolves to an IP address belonging to the
-              [=IP address space/private=] network address space and [=this=]'s [=relevant global object=]'s [=associated Document=] is
-              not [=allowed to use=] the [=policy-controlled feature=] named "[=policy-controlled feature/direct-sockets-private=]", [=queue a global task=] on the [=relevant global
-              object=] of
-              [=this=] using the [=TCPSocket task source=] to run the
-              following steps:
+              Let |addressSpace| be the result of [=identifying the IP address space=] of |remoteAddress|.
+            <li>
+              If |addressSpace| is [=IP address space/private=] or [=IP address space/local=]:
               <ol>
                 <li>
-                  [=Reject=] the {{TCPSocket/[[openedPromise]]}} with a "{{NotAllowedError}}"
-                  {{DOMException}}.
+                  If |addressSpace| is [=IP address space/private=] and [=this=]'s [=relevant global object=]'s [=associated Document=] is not [=allowed to use=] the [=policy-controlled feature=] named "[=policy-controlled feature/local-network=]", [=queue a global task=] to [=reject=] the {{TCPSocket/[[openedPromise]]}} and {{TCPSocket/[[closedPromise]]}} with an "{{InvalidAccessError}}" {{DOMException}} and <b>abort these steps</b>.
                 <li>
-                  [=Reject=] the {{TCPSocket/[[closedPromise]]}} with a "{{NotAllowedError}}"
-                  {{DOMException}}.
+                  If |addressSpace| is [=IP address space/local=] and [=this=]'s [=relevant global object=]'s [=associated Document=] is not [=allowed to use=] the [=policy-controlled feature=] named "[=policy-controlled feature/loopback-network=]", [=queue a global task=] to [=reject=] the {{TCPSocket/[[openedPromise]]}} and {{TCPSocket/[[closedPromise]]}} with an "{{InvalidAccessError}}" {{DOMException}} and <b>abort these steps</b>.
               </ol>
             <li>
               Invoke the operating system to open a TCP socket using the given |remoteAddress| and
@@ -997,33 +992,24 @@
           Perform the following steps [=in parallel=].
           <ol>
             <li>
-              If the inferred {{UDPSocket/mode}} is {{UDPSocket/connected}} and |remoteAddress| resolves to an IP address belonging to the
-              [=IP address space/private=] network address space and [=this=]'s [=relevant global object=]'s [=associated Document=] is
-              not [=allowed to use=] the [=policy-controlled feature=] named "[=policy-controlled feature/direct-sockets-private=]", [=queue a global task=] on the [=relevant global
-              object=] of
-              [=this=] using the [=UDPSocket task source=] to run the
-              following steps:
+              If the inferred {{UDPSocket/mode}} is {{UDPSocket/connected}}:
               <ol>
                 <li>
-                  [=Reject=] the {{UDPSocket/[[openedPromise]]}} with a "{{NotAllowedError}}"
-                  {{DOMException}}.
+                  Let |addressSpace| be the result of [=identifying the IP address space=] of |remoteAddress|.
                 <li>
-                  [=Reject=] the {{UDPSocket/[[closedPromise]]}} with a "{{NotAllowedError}}"
-                  {{DOMException}}.
+                  If |addressSpace| is [=IP address space/private=] or [=IP address space/local=]:
+                  <ol>
+                    <li>
+                      If |addressSpace| is [=IP address space/private=] and [=this=]'s [=relevant global object=]'s [=associated Document=] is not [=allowed to use=] the [=policy-controlled feature=] named "[=policy-controlled feature/local-network=]", [=queue a global task=] on the [=relevant global object=] of [=this=] using the [=UDPSocket task source=] to [=reject=] the {{UDPSocket/[[openedPromise]]}} and {{UDPSocket/[[closedPromise]]}} with an "{{InvalidAccessError}}" {{DOMException}} and <b>abort these steps</b>.
+                    <li>
+                      If |addressSpace| is [=IP address space/local=] and [=this=]'s [=relevant global object=]'s [=associated Document=] is not [=allowed to use=] the [=policy-controlled feature=] named "[=policy-controlled feature/loopback-network=]", [=queue a global task=] on the [=relevant global object=] of [=this=] using the [=UDPSocket task source=] to [=reject=] the {{UDPSocket/[[openedPromise]]}} and {{UDPSocket/[[closedPromise]]}} with an "{{InvalidAccessError}}" {{DOMException}} and <b>abort these steps</b>.
+                  </ol>
               </ol>
             <li>
-              If the inferred {{UDPSocket/mode}} is {{UDPSocket/bound}} and either [=this=]'s [=relevant global object=]'s [=associated Document=] is
-              not [=allowed to use=] the [=policy-controlled feature=] named "[=policy-controlled feature/direct-sockets-private=]"
-              or the requested |localPort| is less than 1024, [=queue a global task=] on the [=relevant global object=] of
-              [=this=] using the [=UDPSocket task source=] to run the
-              following steps:
+              If the inferred {{UDPSocket/mode}} is {{UDPSocket/bound}}:
               <ol>
                 <li>
-                  [=Reject=] the {{UDPSocket/[[openedPromise]]}} with a "{{NotAllowedError}}"
-                  {{DOMException}}.
-                <li>
-                  [=Reject=] the {{UDPSocket/[[closedPromise]]}} with a "{{NotAllowedError}}"
-                  {{DOMException}}.
+                  If [=this=]'s [=relevant global object=]'s [=associated Document=] is not [=allowed to use=] the [=policy-controlled feature=] named "[=policy-controlled feature/local-network=]" or is not [=allowed to use=] the [=policy-controlled feature=] named "[=policy-controlled feature/loopback-network=]", [=queue a global task=] on the [=relevant global object=] of [=this=] using the [=UDPSocket task source=] to [=reject=] the {{UDPSocket/[[openedPromise]]}} and {{UDPSocket/[[closedPromise]]}} with an "{{InvalidAccessError}}" {{DOMException}} and <b>abort these steps</b>.
               </ol>
 
               <div class="note">
@@ -2570,33 +2556,36 @@
 
     <section id="permissions-policy-pna">
       <h3>Permissions Policy (Private Network Access)</h3>
-
       <p>
-        This specification defines a feature that controls whether {{TCPSocket}} and {{UDPSocket}}
-        classes might connect to addresses belonging to the [=IP address space/private=] network address space.
-      <p>
-        The feature name for this feature is "<dfn
-          data-dfn-for="policy-controlled feature"><code>direct-sockets-private</code></dfn>"`.
-
-      <p>
-        The default allowlist for this feature is `'none'`.
+        Access to [=IP address space/private=] and [=IP address space/local=] address spaces is gated by the following permission policies:
+        <ul>
+          <li>
+            Connections to the [=IP address space/private=] space require the "[=policy-controlled feature/local-network=]" permission policy.
+          <li>
+            Connections to the [=IP address space/local=] space require the "[=policy-controlled feature/loopback-network=]" permission policy.
+        </ul>
 
       <div class="note">
-        A document’s permission policy determines whether a {{TCPSocket}}
-        {{TCPSocket/[[openedPromise]]}} or {{UDPSocket}} {{UDPSocket/[[openedPromise]]}} promise rejects with
-        a {{"NotAllowedError"}} {{DOMException}}.
+        A document’s permission policies determine whether a {{TCPSocket}}
+        {{TCPSocket/[[openedPromise]]}} or {{UDPSocket}} {{UDPSocket/[[openedPromise]]}} promise rejects.
+        Rejection occurs with a "{{InvalidAccessError}}" {{DOMException}} if the required permission policy is disallowed.
 
         <ul>
           <li>
-            For {{TCPSocket}}, the {{TCPSocket/[[openedPromise]]}} will be rejected if the resolved address belongs to the
-            [=IP address space/private=] network address space.
+            For {{TCPSocket}}, the {{TCPSocket/[[openedPromise]]}} will be rejected if the resolved address 
+            belongs to the [=IP address space/private=] or [=IP address space/local=] network address 
+            space and the relevant "[=policy-controlled feature/local-network=]" or 
+            "[=policy-controlled feature/loopback-network=]" permission policy is disallowed.
           <li>
             For {{UDPSocket}} in {{UDPSocket/connected}} {{UDPSocket/mode}}, the {{UDPSocket/[[openedPromise]]}}
-            will be rejected if the resolved address belongs to the
-            [=IP address space/private=] network address space.
+            will be rejected if the resolved address belongs to the [=IP address space/private=] or 
+            [=IP address space/local=] network address space and the relevant 
+            "[=policy-controlled feature/local-network=]" or "[=policy-controlled feature/loopback-network=]" 
+            permission policy is disallowed.
           <li>
             For {{UDPSocket}} in {{UDPSocket/bound}} {{UDPSocket/mode}}, the {{UDPSocket/[[openedPromise]]}}
-            will be rejected unconditionally.
+            will be rejected if either the "[=policy-controlled feature/local-network=]" 
+            or "[=policy-controlled feature/loopback-network=]" permission policy is disallowed.
         </ul>
       </div>
 
