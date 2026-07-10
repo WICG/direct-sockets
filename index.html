@@ -944,7 +944,9 @@
         <li>
           If any of |options|["{{UDPSocketOptions/multicastTimeToLive}}"],
           |options|["{{UDPSocketOptions/multicastLoopback}}"],
-          or |options|["{{UDPSocketOptions/multicastAllowAddressSharing}}"] is specified, and [=this=]'s [=relevant
+          or |options|["{{UDPSocketOptions/multicastAllowAddressSharing}}"] is specified,
+          or |options|["{{UDPSocketOptions/remoteAddress}}"] is a valid multicast address (IPv4: 224.0.0.0/4 or IPv6: ff00::/8),
+          and [=this=]'s [=relevant
           global object=]'s [=associated Document=] is not [=allowed to use=] the 
           [=policy-controlled feature=] named "[=policy-controlled feature/direct-sockets-multicast=]",
            throw a "{{NotAllowedError}}" {{DOMException}}.
@@ -1488,6 +1490,11 @@
               or |message|["{{UDPMessage/remotePort}}"] <b>is not specified</b> in
               {{UDPSocket/bound}} {{UDPSocket/mode}}, reject |promise| with a
               {{TypeError}} and return |promise|.
+            <li>
+              If |message|["{{UDPMessage/remoteAddress}}"] is a valid multicast address (IPv4: 224.0.0.0/4 or IPv6: ff00::/8),
+              and [=this=]'s [=relevant global object=]'s [=associated Document=] is not [=allowed to use=] the 
+              [=policy-controlled feature=] named "[=policy-controlled feature/direct-sockets-multicast=]",
+              reject |promise| with a "{{NotAllowedError}}" {{DOMException}} and return |promise|.
             <li>
               [=Get a copy of the buffer source=] |message|["{{UDPMessage/data}}"] and save the
               result in |bytes|.
@@ -2596,7 +2603,7 @@
 
       <p>
         This specification defines a feature that controls whether an application can
-        receive multicast packets using {{UDPSocket}} and {{MulticastController}}.
+        send and receive multicast packets using {{UDPSocket}} and {{MulticastController}}.
       <p>
         The feature name for this feature is "<dfn
           data-dfn-for="policy-controlled feature"><code>direct-sockets-multicast</code></dfn>"`.
@@ -2611,13 +2618,19 @@
           <li>
             If an application without the permission attempts to construct a {{UDPSocket}}
             with the {{UDPSocketOptions/multicastTimeToLive}}, {{UDPSocketOptions/multicastLoopback}},
-            or {{UDPSocketOptions/multicastAllowAddressSharing}} members set, the constructor will throw a
+            {{UDPSocketOptions/multicastAllowAddressSharing}} members set, or a {{UDPSocketOptions/remoteAddress}}
+            that is a valid multicast address, the constructor will throw a
             "{{NotAllowedError}}" {{DOMException}}.
           </li>
           <li>
             If an application without the permission successfully opens a {{UDPSocket}} in {{UDPSocket/bound}} mode,
             the returned {{UDPSocketOpenInfo}} dictionary will not contain the
             {{UDPSocketOpenInfo/multicastController}} member.
+          </li>
+          <li>
+            If an application without the permission attempts to write a {{UDPMessage}}
+            with a {{UDPMessage/remoteAddress}} that is a valid multicast address, the promise will reject with a
+            "{{NotAllowedError}}" {{DOMException}}.
           </li>
         </ul>
       </div>

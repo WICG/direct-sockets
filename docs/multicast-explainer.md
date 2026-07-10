@@ -73,11 +73,17 @@ This specification defines a policy-controlled permission identified by the stri
 ```
 Permissions-Policy: direct-sockets-multicast=(self)
 ```
-This [`Permissions-Policy`](https://chromestatus.com/feature/5745992911552512) header determines whether 
-`multicastController.joinGroup()`, `multicastController.leaveGroup()` call or providing multicast params to
-`new UDPSocket(..)` immediately rejects with SecurityError.
+This [`Permissions-Policy`](https://chromestatus.com/feature/5745992911552512) header determines whether the following operations are allowed or rejected with `DOMException.NotAllowedError`:
 
-* In a similar fashion, Apple requires that apps with multicast declare [multicast entitlment](https://developer.apple.com/documentation/bundleresources/entitlements/com.apple.developer.networking.multicast). 
+* `multicastController.joinGroup()`, `multicastController.leaveGroup()` call.
+* Providing multicast params to `new UDPSocket(..)`. 
+* Sending UDP datagrams to a multicast address via `new UDPSocket(multicastRemoteAdd, ...)` or `writer.write({
+    data: ...,
+    remoteAddress: multicastAddress,
+    remotePort: ...
+})`
+
+In a similar fashion, Apple requires that apps with multicast declare [multicast entitlment](https://developer.apple.com/documentation/bundleresources/entitlements/com.apple.developer.networking.multicast). 
 
 ## Sending datagrams example
 
