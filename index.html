@@ -1833,7 +1833,7 @@
       An instance of this interface is obtained from the {{UDPSocketOpenInfo/multicastController}} member of the
       dictionary returned by the {{UDPSocket/opened}} promise.
       This member is only present if the socket is in {{UDPSocket/bound}} {{UDPSocket/mode}} and
-      and [=this=]'s [=relevant global object=]'s [=associated Document=] is [=allowed to use=]
+      [=this=]'s [=relevant global object=]'s [=associated Document=] is [=allowed to use=]
       the [=policy-controlled feature=] named "[=policy-controlled feature/direct-sockets-multicast=]".
     </p>
 
@@ -1957,6 +1957,8 @@
 
       The {{MulticastController/joinGroup(groupAddress, options)}} method steps are:
       <ol>
+        <li>If the associated {{MulticastController/[[socket]]}} was closed or aborted, throw an "`InvalidStateError`"
+          {{DOMException}}.</li>
         <li>If `groupAddress` is not a valid IP address, throw a {{TypeError}}.</li>
         <li>If `groupAddress` is not a valid multicast address (IPv4: 224.0.0.0/4 or IPv6: ff00::/8),
           throw a {{TypeError}}.</li>
@@ -1968,10 +1970,10 @@
               throw a {{TypeError}}.</li>
           </ol>
         </li>
-        <li>If the socket has already joined or in the process of joining a multicast group with
+        <li>If the socket has already joined or is in the process of joining a multicast group with
           the same `groupAddress` and `options.sourceAddress` combination, throw an "`InvalidStateError`" {{DOMException}}.</li>
-        <li>If the associated {{MulticastController/[[socket]]}} was closed or aborted, throw an "`InvalidStateError`"
-          {{DOMException}}.</li>
+        <li>If the socket has already joined or is in the process of joining a multicast group with the same `groupAddress`
+          but a different kind of membership (ASM versus SSM), throw an "`InvalidStateError`" {{DOMException}}.</li>
         <li>Let `promise` be [=a new promise=].</li>
         <li>Perform the following steps [=in parallel=]:
           <ol>
@@ -1983,6 +1985,8 @@
             <li>[=Queue a global task=] on the [=relevant global object=] of [=this=] using the
                [=UDPSocket task source=] to run the following steps:
               <ol>
+                <li>If the associated {{MulticastController/[[socket]]}} was closed or aborted, [=reject=] `promise` with
+                  an "`AbortError`" {{DOMException}} and abort these steps.</li>
                 <li>If the operating system returned a failure, [=reject=] `promise` with
                    a "`NetworkError`" {{DOMException}} and abort these steps.</li>
                 <li>Let `membership` be a new {{MulticastMembership}} with
@@ -2021,18 +2025,27 @@
         must match those used when joining the group.
       </p>
       <div class="note">
-        It is not necessary to leave joined multicast groups to clean up the resources. On the socket close, operating
-        system will leave the groups automatically.
+        It is not necessary to leave joined multicast groups to clean up the resources. When the socket closes, the operating
+        system leaves the groups automatically.
       </div>
 
       The {{MulticastController/leaveGroup(groupAddress, options)}} method steps are:
       <ol>
-        <li>If `groupAddress` is not a valid IP address, throw a {{TypeError}}.</li>
-        <li>If `options.sourceAddress` is present and is not a valid IP address, throw a {{TypeError}}.</li>
-        <li>If the socket has never joined a multicast group with the specified `groupAddress` and `options.sourceAddress`
-          combination, already left it, or is in the process of leaving it, throw an "`InvalidStateError`" {{DOMException}}.</li>
         <li>If the associated {{MulticastController/[[socket]]}} was closed or aborted, throw an "`InvalidStateError`"
           {{DOMException}}.</li>
+        <li>If `groupAddress` is not a valid IP address, throw a {{TypeError}}.</li>
+        <li>If `groupAddress` is not a valid multicast address (IPv4: 224.0.0.0/4 or IPv6: ff00::/8),
+          throw a {{TypeError}}.</li>
+        <li>If `options.sourceAddress` is present:
+          <ol>
+            <li>If `options.sourceAddress` is not a valid IP address, throw a {{TypeError}}.</li>
+            <li>If `options.sourceAddress` is a multicast, loopback, or unspecified address, throw a {{TypeError}}.</li>
+            <li>If `options.sourceAddress` and `groupAddress` are not the same IP version (both IPv4 or both IPv6),
+              throw a {{TypeError}}.</li>
+          </ol>
+        </li>
+        <li>If {{MulticastController/[[joinedGroups]]}} does not contain a {{MulticastMembership}} with matching `groupAddress`
+          and `options.sourceAddress`, or the socket is in the process of leaving it, throw an "`InvalidStateError`" {{DOMException}}.</li>
         <li>Let `promise` be [=a new promise=].</li>
         <li>Perform the following steps [=in parallel=]:
           <ol>
@@ -2044,6 +2057,8 @@
             <li>[=Queue a global task=] on the [=relevant global object=] of [=this=] using the
                [=UDPSocket task source=] to run the following steps:
               <ol>
+                <li>If the associated {{MulticastController/[[socket]]}} was closed or aborted, [=reject=] `promise` with
+                  an "`AbortError`" {{DOMException}} and abort these steps.</li>
                 <li>If the operating system returned a failure, [=reject=] `promise` with
                    a "`NetworkError`" {{DOMException}} and abort these steps.</li>
                 <li>Remove the {{MulticastMembership}} with matching `groupAddress` and `options.sourceAddress`
@@ -2088,6 +2103,7 @@
       </p>
       <ol>
         <li>Let |result| be a new [=list=].</li>
+        <li>If the associated {{MulticastController/[[socket]]}} was closed or aborted, return |result|.</li>
         <li>[=list/For each=] |membership| of [=this=].{{MulticastController/[[joinedGroups]]}}:
           <ol>
             <li>If |membership|.{{MulticastMembership/sourceAddress}} is undefined:
